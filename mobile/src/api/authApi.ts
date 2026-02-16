@@ -13,6 +13,7 @@ type RegisterPayload = {
   full_name?: string;
 };
 
+
 type TokenPair = {
   access_token: string;
   refresh_token: string;
@@ -56,6 +57,7 @@ export async function restoreSessionFromStorage(): Promise<void> {
     await clearTokens();
   }
 }
+
 
 export async function logout(): Promise<void> {
   try {
