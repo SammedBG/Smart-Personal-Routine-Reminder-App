@@ -8,6 +8,7 @@ from backend.app.config import get_settings
 def create_app() -> FastAPI:
     settings = get_settings()
 
+
     app = FastAPI(
         title=settings.project_name,
         debug=settings.debug,

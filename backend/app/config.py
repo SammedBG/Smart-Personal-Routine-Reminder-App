@@ -4,6 +4,7 @@ from typing import List, Optional
 from pydantic import AnyHttpUrl, BaseSettings, Field, PostgresDsn, validator
 
 
+
 class Settings(BaseSettings):
     # Environment
     environment: str = Field("development", env="ENVIRONMENT")
