@@ -1,0 +1,40 @@
+import enum
+import uuid
+from datetime import datetime
+from typing import Optional
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from backend.app.db.base import Base, TimestampMixin
+
+
+class Platform(str, enum.Enum):
+    ANDROID = "android"
+    IOS = "ios"
+
+
+class Device(TimestampMixin, Base):
+    __tablename__ = "devices"
+    __table_args__ = (
+        UniqueConstraint("user_id", "device_id", name="uq_devices_user_device"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+
+    device_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    fcm_token: Mapped[str] = mapped_column(String(512), nullable=False)
+    platform: Mapped[Platform] = mapped_column(String(32), nullable=False)
+    app_version: Mapped[Optional[str]] = mapped_column(String(64))
+
+    last_seen_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="devices")
+
