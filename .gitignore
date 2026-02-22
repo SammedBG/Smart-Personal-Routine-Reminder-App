@@ -32,8 +32,9 @@ backend/alembic/env.pyzw
 backend/alembic/env.pyzwz
 
 mobile/node_modules
+node_modules
 
-
+__pycache__
 
 
 
