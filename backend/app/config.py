@@ -1,7 +1,12 @@
+import os
 from functools import lru_cache
 from typing import List, Optional
 
 from pydantic import AnyHttpUrl, BaseSettings, Field, PostgresDsn, validator
+
+# Load .env from backend/ when running from project root
+_BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+_ENV_FILE = os.path.join(_BACKEND_DIR, ".env")
 
 
 
@@ -41,7 +46,7 @@ class Settings(BaseSettings):
 
     class Config:
         case_sensitive = True
-        env_file = ".env"
+        env_file = _ENV_FILE
         env_file_encoding = "utf-8"
 
     @validator("database_url", pre=True)
