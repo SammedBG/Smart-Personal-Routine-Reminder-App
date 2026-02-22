@@ -31,6 +31,8 @@ backend/alembic/env.pywz
 backend/alembic/env.pyzw
 backend/alembic/env.pyzwz
 
+HOW_TO_RUN.md
+
 mobile/node_modules
 node_modules
 
