@@ -40,6 +40,21 @@ async def create_reminder(
     return ReminderRead.from_orm(reminder)
 
 
+@router.get("/sync", response_model=ReminderSyncResponse)
+async def sync_reminders(
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+    since: Optional[datetime] = Query(default=None),
+) -> ReminderSyncResponse:
+    service = ReminderService(db)
+    reminders = await service.list_changed_since(current_user.id, since)
+    now = datetime.utcnow()
+    return ReminderSyncResponse(
+        reminders=[ReminderRead.from_orm(r) for r in reminders],
+        last_sync_at=now,
+    )
+
+
 @router.get("/{reminder_id}", response_model=ReminderRead)
 async def get_reminder(
     reminder_id: UUID,
@@ -95,19 +110,3 @@ async def toggle_reminder(
     reminder.is_active = not reminder.is_active
     reminder = await service.update_reminder(reminder, ReminderUpdate())
     return ReminderRead.from_orm(reminder)
-
-
-@router.get("/sync", response_model=ReminderSyncResponse)
-async def sync_reminders(
-    since: Optional[datetime] = Query(default=None),
-    current_user: CurrentUser = Depends(),
-    db: AsyncSession = Depends(get_db),
-) -> ReminderSyncResponse:
-    service = ReminderService(db)
-    reminders = await service.list_changed_since(current_user.id, since)
-    now = datetime.utcnow()
-    return ReminderSyncResponse(
-        reminders=[ReminderRead.from_orm(r) for r in reminders],
-        last_sync_at=now,
-    )
-

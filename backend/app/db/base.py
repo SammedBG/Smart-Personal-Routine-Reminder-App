@@ -20,9 +20,6 @@ class TimestampMixin:
     )
 
 
-# Import models so Alembic can discover them via Base.metadata
-from backend.app.models.user import User  # noqa: F401,E402
-from backend.app.models.reminder import Reminder  # noqa: F401,E402
-from backend.app.models.device import Device  # noqa: F401,E402
+# Models are imported in main.py / env.py so Base.metadata is populated
 
 

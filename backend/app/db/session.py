@@ -8,7 +8,7 @@ from backend.app.config import get_settings
 settings = get_settings()
 
 engine = create_async_engine(
-    settings.database_url.unicode_string(), echo=settings.sql_alchemy_echo, future=True
+    str(settings.database_url), echo=settings.sql_alchemy_echo, future=True
 )
 
 AsyncSessionLocal = async_sessionmaker(

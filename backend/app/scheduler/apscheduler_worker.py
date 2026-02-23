@@ -14,7 +14,7 @@ from backend.app.notifications.fcm import send_notification_to_devices
 
 settings = get_settings()
 
-engine = create_async_engine(settings.database_url.unicode_string(), future=True)
+engine = create_async_engine(str(settings.database_url), future=True)
 SessionLocal = async_sessionmaker(
     autocommit=False, autoflush=False, bind=engine, expire_on_commit=False
 )
