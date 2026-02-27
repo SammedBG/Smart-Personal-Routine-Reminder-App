@@ -1,42 +1,64 @@
-.cursor
+# Node / JS
+node_modules/
+npm-debug.log
+yarn-error.log
+.pnp
+.pnp.js
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+
+# Environments
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env.development
-.env.test
-.env.production
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+.venv/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
-.venv
-.vscode
-.idea
-.pytest_cache
-.pytest_cache
+# IDE / Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.cursor/
 
-backend/alembic/versions/
-backend/alembic.ini
-backend/alembic/
-backend/alembic/env.py
-backend/alembic/env.pyc
-backend/alembic/env.pyo
-backend/alembic/env.pyd
-backend/alembic/env.pyw
-backend/alembic/env.pyz
-backend/alembic/env.pywz
-backend/alembic/env.pyzw
-backend/alembic/env.pyzwz
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
 
-HOW_TO_RUN.md
+# Mobile / React Native
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/android/build/
+mobile/android/local.properties
+mobile/ios/build/
+mobile/ios/Pods/
+mobile/.expo/
 
-mobile/node_modules
-node_modules
-
-__pycache__
-
-
-
+# Database / Migrations
+backend/smart_routines.db
+# (Note: backend/alembic/versions should usually be committed, so we don't ignore it here)

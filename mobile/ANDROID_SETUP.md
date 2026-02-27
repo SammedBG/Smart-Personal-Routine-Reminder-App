@@ -51,7 +51,8 @@ Follow these steps in order. After each step, **close and reopen PowerShell** (o
 1. Open **Environment Variables** again (Win + R → `sysdm.cpl` → Advanced → Environment Variables).
 2. Under **User variables**, click **New**:
    - Variable name: `ANDROID_HOME`
-   - Variable value: your SDK path, e.g. `C:\Users\My\AppData\Local\Android\Sdk`
+   - Variable value: your SDK path, e.g
+   `C:\Users\My\AppData\Local\Android\Sdk`
 3. Edit **Path** (User variables):
    - Add: `%ANDROID_HOME%\platform-tools`
    - Add: `%ANDROID_HOME%\emulator`
