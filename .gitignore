@@ -62,3 +62,4 @@ mobile/.expo/
 # Database / Migrations
 backend/smart_routines.db
 # (Note: backend/alembic/versions should usually be committed, so we don't ignore it here)
+smart_routines.db
