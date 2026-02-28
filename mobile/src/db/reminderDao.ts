@@ -26,6 +26,11 @@ export async function loadAllRemindersFromDb(): Promise<Reminder[]> {
   return rows;
 }
 
+export async function deleteReminderFromDb(id: string): Promise<void> {
+  const db = await getDatabase();
+  await db.executeSql('DELETE FROM reminders WHERE id = ?', [id]);
+}
+
 export async function upsertRemindersInDb(reminders: Reminder[]): Promise<void> {
   if (!reminders.length) return;
   const db = await getDatabase();

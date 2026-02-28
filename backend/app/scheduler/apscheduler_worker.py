@@ -29,6 +29,7 @@ async def process_due_reminders() -> None:
             .where(
                 and_(
                     Reminder.is_active.is_(True),
+                    Reminder.deleted_at.is_(None),
                     Reminder.next_trigger_at.is_not(None),
                     Reminder.next_trigger_at <= now,
                 )
@@ -90,15 +91,16 @@ def _compute_next_trigger(reminder: Reminder, from_time: datetime) -> datetime |
     elif reminder.repeat_type == RepeatType.DAILY:
         return next_dt
     elif reminder.repeat_type in (RepeatType.WEEKLY, RepeatType.CUSTOM):
-        # Expect custom_days like {"weekdays": [0-6]}
-        week_days = (reminder.custom_days or {}).get("weekdays")
-        if not week_days:
+        # custom_days is stored as {"days": [0-6]} using JS convention (0=Sun)
+        days = (reminder.custom_days or {}).get("days")
+        if not days:
             return next_dt
-        # Find the next day in custom list
-        current_weekday = next_dt.weekday()
+        # Convert JS weekday (0=Sun) to Python weekday (0=Mon)
+        # JS: 0=Sun,1=Mon,...,6=Sat  →  Python: 0=Mon,...,5=Sat,6=Sun
+        python_days = [((d - 1) % 7) for d in days]
         for offset in range(0, 8):
             candidate = next_dt + timedelta(days=offset)
-            if candidate.weekday() in week_days and candidate > from_time:
+            if candidate.weekday() in python_days and candidate > from_time:
                 return candidate
         return None
     else:

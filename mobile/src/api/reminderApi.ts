@@ -1,6 +1,6 @@
 import { apiClient } from './client';
 import type { Reminder } from '../store/reminderStore';
-import { upsertRemindersInDb, loadAllRemindersFromDb } from '../db/reminderDao';
+import { upsertRemindersInDb, loadAllRemindersFromDb, deleteReminderFromDb } from '../db/reminderDao';
 import { useReminderStore } from '../store/reminderStore';
 
 type ReminderPayload = {
@@ -36,9 +36,10 @@ export async function updateReminder(id: string, payload: Partial<ReminderPayloa
 
 export async function deleteReminder(id: string): Promise<void> {
   await apiClient.delete(`/reminders/${id}`);
-  // Remove from local DB and store
-  const current = useReminderStore.getState().reminders.filter((r) => r.id !== id);
-  useReminderStore.getState().setReminders(current);
+  // Remove from local SQLite DB and store
+  await deleteReminderFromDb(id);
+  const all = await loadAllRemindersFromDb();
+  useReminderStore.getState().setReminders(all);
 }
 
 export async function toggleReminder(id: string): Promise<void> {

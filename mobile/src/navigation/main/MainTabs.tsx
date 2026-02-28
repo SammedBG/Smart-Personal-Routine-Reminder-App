@@ -4,17 +4,20 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import { TodayScreen } from '../../screens/main/TodayScreen';
 import { ReminderListScreen } from '../../screens/main/ReminderListScreen';
+import { AnalyticsScreen } from '../../screens/main/AnalyticsScreen';
 import { SettingsScreen } from '../../screens/main/SettingsScreen';
 
 export type MainTabParamList = {
   Today: undefined;
   Reminders: undefined;
+  Analytics: undefined;
   Settings: undefined;
 };
 
 const TAB_ICONS: Record<string, string> = {
   Today: '📅',
   Reminders: '🔔',
+  Analytics: '📊',
   Settings: '⚙️',
 };
 
@@ -35,6 +38,7 @@ export const MainTabs: React.FC = () => {
       })}>
       <Tab.Screen name="Today" component={TodayScreen} />
       <Tab.Screen name="Reminders" component={ReminderListScreen} />
+      <Tab.Screen name="Analytics" component={AnalyticsScreen} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   );

@@ -74,6 +74,10 @@ class ReminderService:
             custom_days=data.custom_days,
             is_active=data.is_active,
             next_trigger_at=next_trigger,
+            start_date=data.start_date,
+            end_date=data.end_date,
+            medicine_details=data.medicine_details.dict() if data.medicine_details else None,
+            exercise_details=data.exercise_details.dict() if data.exercise_details else None,
         )
         await self.repo.create(reminder)
         return reminder
@@ -83,7 +87,11 @@ class ReminderService:
     ) -> Reminder:
         update_data = data.dict(exclude_unset=True)
         for field, value in update_data.items():
-            setattr(reminder, field, value)
+            # Convert nested pydantic objects to dicts for JSON columns
+            if field in ("medicine_details", "exercise_details") and value is not None:
+                setattr(reminder, field, value)
+            else:
+                setattr(reminder, field, value)
         reminder.version += 1
         reminder.updated_at = datetime.utcnow()
 

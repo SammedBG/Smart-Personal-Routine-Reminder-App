@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useReminderStore } from '../../store/reminderStore';
@@ -33,6 +33,13 @@ export const ReminderListScreen: React.FC = () => {
   useEffect(() => {
     void fetchReminders();
   }, []);
+
+  // Re-fetch when screen gains focus (e.g. returning from edit screen)
+  useFocusEffect(
+    useCallback(() => {
+      void fetchReminders();
+    }, []),
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

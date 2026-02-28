@@ -21,6 +21,8 @@ import {
   useReminderStore,
   ReminderType,
   RepeatType,
+  MedicineDetails,
+  ExerciseDetails,
 } from '../../store/reminderStore';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
@@ -29,6 +31,7 @@ const REMINDER_TYPES: { label: string; value: ReminderType }[] = [
   { label: '🍎 Food', value: 'food' },
   { label: '💧 Water', value: 'water' },
   { label: '😴 Sleep', value: 'sleep' },
+  { label: '🏃 Exercise', value: 'exercise' },
   { label: '✏️ Custom', value: 'custom' },
 ];
 
@@ -38,6 +41,9 @@ const REPEAT_TYPES: { label: string; value: RepeatType }[] = [
   { label: 'Weekly', value: 'weekly' },
   { label: 'Custom', value: 'custom' },
 ];
+
+const EXERCISE_TYPES = ['Cardio', 'Yoga', 'Strength', 'Stretching', 'Walking', 'Other'];
+const INTENSITY_LEVELS = ['Light', 'Moderate', 'Intense'];
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -63,12 +69,22 @@ export const ReminderEditScreen: React.FC = () => {
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Medicine-specific fields
+  const [dosage, setDosage] = useState('');
+  const [quantity, setQuantity] = useState('1');
+  const [beforeFood, setBeforeFood] = useState(true);
+  const [durationDays, setDurationDays] = useState('');
+
+  // Exercise-specific fields
+  const [exerciseType, setExerciseType] = useState('Cardio');
+  const [durationMinutes, setDurationMinutes] = useState('30');
+  const [intensity, setIntensity] = useState('Moderate');
+
   useEffect(() => {
     if (existingReminder) {
       setTitle(existingReminder.title);
       setDescription(existingReminder.description || '');
       setReminderType(existingReminder.reminder_type);
-      // Strip seconds from time_of_day for display (HH:MM:SS -> HH:MM)
       const t = existingReminder.time_of_day;
       setTimeOfDay(t.length > 5 ? t.slice(0, 5) : t);
       setRepeatType(existingReminder.repeat_type);
@@ -79,6 +95,23 @@ export const ReminderEditScreen: React.FC = () => {
         setCustomDays((existingReminder.custom_days as any).days);
       }
       setIsActive(existingReminder.is_active);
+
+      // Load medicine details
+      if (existingReminder.medicine_details) {
+        const md = existingReminder.medicine_details;
+        setDosage(md.dosage || '');
+        setQuantity(String(md.quantity || 1));
+        setBeforeFood(md.before_food ?? true);
+        setDurationDays(md.duration_days ? String(md.duration_days) : '');
+      }
+
+      // Load exercise details
+      if (existingReminder.exercise_details) {
+        const ed = existingReminder.exercise_details;
+        setExerciseType(ed.exercise_type || 'Cardio');
+        setDurationMinutes(ed.duration_minutes ? String(ed.duration_minutes) : '30');
+        setIntensity(ed.intensity || 'Moderate');
+      }
     }
   }, [existingReminder]);
 
@@ -102,7 +135,7 @@ export const ReminderEditScreen: React.FC = () => {
 
     setSaving(true);
     try {
-      const payload = {
+      const payload: Record<string, unknown> = {
         title: title.trim(),
         description: description.trim() || undefined,
         reminder_type: reminderType,
@@ -116,10 +149,29 @@ export const ReminderEditScreen: React.FC = () => {
         is_active: isActive,
       };
 
+      // Add medicine details if type is medicine
+      if (reminderType === 'medicine') {
+        payload.medicine_details = {
+          dosage: dosage.trim() || null,
+          quantity: parseInt(quantity, 10) || 1,
+          before_food: beforeFood,
+          duration_days: durationDays ? parseInt(durationDays, 10) : null,
+        };
+      }
+
+      // Add exercise details if type is exercise
+      if (reminderType === 'exercise') {
+        payload.exercise_details = {
+          exercise_type: exerciseType.toLowerCase(),
+          duration_minutes: parseInt(durationMinutes, 10) || 30,
+          intensity: intensity.toLowerCase(),
+        };
+      }
+
       if (isEdit && reminderId) {
         await updateReminder(reminderId, payload);
       } else {
-        await createReminder(payload);
+        await createReminder(payload as any);
       }
       navigation.goBack();
     } catch (e: any) {
@@ -195,6 +247,106 @@ export const ReminderEditScreen: React.FC = () => {
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Medicine-specific fields */}
+      {reminderType === 'medicine' && (
+        <View style={styles.detailsSection}>
+          <Text style={styles.detailsSectionTitle}>Medicine Details</Text>
+
+          <Text style={styles.label}>Dosage</Text>
+          <TextInput
+            style={styles.input}
+            value={dosage}
+            onChangeText={setDosage}
+            placeholder="e.g. 500mg, 1 tablet"
+            placeholderTextColor="#999"
+          />
+
+          <Text style={styles.label}>Quantity</Text>
+          <TextInput
+            style={styles.input}
+            value={quantity}
+            onChangeText={setQuantity}
+            placeholder="1"
+            placeholderTextColor="#999"
+            keyboardType="numeric"
+          />
+
+          <View style={styles.switchRow}>
+            <Text style={styles.label}>Before Food</Text>
+            <Switch value={beforeFood} onValueChange={setBeforeFood} />
+          </View>
+
+          <Text style={styles.label}>Duration (days, optional)</Text>
+          <TextInput
+            style={styles.input}
+            value={durationDays}
+            onChangeText={setDurationDays}
+            placeholder="e.g. 30"
+            placeholderTextColor="#999"
+            keyboardType="numeric"
+          />
+        </View>
+      )}
+
+      {/* Exercise-specific fields */}
+      {reminderType === 'exercise' && (
+        <View style={styles.detailsSection}>
+          <Text style={styles.detailsSectionTitle}>Exercise Details</Text>
+
+          <Text style={styles.label}>Exercise Type</Text>
+          <View style={styles.chipRow}>
+            {EXERCISE_TYPES.map((et) => (
+              <TouchableOpacity
+                key={et}
+                style={[
+                  styles.chip,
+                  exerciseType === et && styles.chipSelected,
+                ]}
+                onPress={() => setExerciseType(et)}>
+                <Text
+                  style={[
+                    styles.chipText,
+                    exerciseType === et && styles.chipTextSelected,
+                  ]}>
+                  {et}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={styles.label}>Duration (minutes)</Text>
+          <TextInput
+            style={styles.input}
+            value={durationMinutes}
+            onChangeText={setDurationMinutes}
+            placeholder="30"
+            placeholderTextColor="#999"
+            keyboardType="numeric"
+          />
+
+          <Text style={styles.label}>Intensity</Text>
+          <View style={styles.chipRow}>
+            {INTENSITY_LEVELS.map((level) => (
+              <TouchableOpacity
+                key={level}
+                style={[
+                  styles.chip,
+                  intensity === level && styles.chipSelected,
+                ]}
+                onPress={() => setIntensity(level)}>
+                <Text
+                  style={[
+                    styles.chipText,
+                    intensity === level && styles.chipTextSelected,
+                  ]}>
+                  {level}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
 
       <Text style={styles.label}>Time</Text>
       <TextInput
@@ -326,6 +478,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 16,
+  },
+  detailsSection: {
+    marginTop: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#e8ecf4',
+  },
+  detailsSectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#4A90D9',
+    marginBottom: 4,
   },
   saveBtn: {
     marginTop: 24,

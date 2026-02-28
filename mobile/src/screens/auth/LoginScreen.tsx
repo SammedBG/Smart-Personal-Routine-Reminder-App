@@ -15,10 +15,18 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      setError('Email and password are required.');
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      await login({ email, password });
+      await login({ email: email.trim(), password });
     } catch (e) {
       setError('Login failed. Check your credentials.');
     } finally {
