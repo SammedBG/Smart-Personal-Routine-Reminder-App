@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
+  TextInput,
   FlatList,
   StyleSheet,
   Switch,
@@ -28,6 +29,17 @@ const TYPE_EMOJI: Record<string, string> = {
   exercise: '🏃',
   custom: '📝',
 };
+
+/** Convert 24-hour HH:MM string to 12-hour AM/PM format */
+function formatTime12h(time24: string): string {
+  const [hStr, mStr] = time24.split(':');
+  let h = parseInt(hStr, 10);
+  const m = mStr || '00';
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  if (h === 0) h = 12;
+  else if (h > 12) h -= 12;
+  return `${h}:${m} ${ampm}`;
+}
 
 const SwipeableRow: React.FC<{
   reminder: Reminder;
@@ -164,12 +176,15 @@ export const ReminderListScreen: React.FC = () => {
       <View style={styles.searchContainer}>
         <Text style={styles.searchIcon}>🔍</Text>
         <View style={styles.searchInputWrap}>
-          <Text
+          <TextInput
             style={styles.searchInput}
-            onPress={() => {}}
-            numberOfLines={1}>
-            {/* Using a simple TextInput-like approach */}
-          </Text>
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search reminders..."
+            placeholderTextColor="#999"
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+          />
         </View>
       </View>
 
@@ -202,7 +217,7 @@ export const ReminderListScreen: React.FC = () => {
                   {item.title}
                 </Text>
                 <Text style={styles.subtitle}>
-                  {item.time_of_day.slice(0, 5)} · {item.repeat_type}
+                  {formatTime12h(item.time_of_day.slice(0, 5))} · {item.repeat_type}
                   {item.reminder_type === 'medicine' && item.medicine_details?.dosage
                     ? ` · ${item.medicine_details.dosage}`
                     : ''}
@@ -253,8 +268,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   searchInput: {
+    flex: 1,
     fontSize: 15,
-    color: '#999',
+    color: '#222',
+    paddingVertical: 6,
   },
   item: {
     flexDirection: 'row',

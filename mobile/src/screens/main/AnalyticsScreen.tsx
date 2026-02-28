@@ -77,7 +77,7 @@ export const AnalyticsScreen: React.FC = () => {
           <View style={styles.todayDivider} />
           <View style={styles.todayStat}>
             <Text style={[styles.todayNumber, styles.rateText]}>
-              {streak?.today_rate || 0}%
+              {Math.round((streak?.today_rate || 0) * 100)}%
             </Text>
             <Text style={styles.todayLabel}>Rate</Text>
           </View>

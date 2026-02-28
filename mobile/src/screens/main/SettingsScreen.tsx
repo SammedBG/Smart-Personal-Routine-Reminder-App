@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,13 @@ import {
   TextInput,
   Switch,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 
 import { useAuthStore } from '../../store/authStore';
 import { logout } from '../../api/authApi';
 import { updateProfile, changePassword, deleteAccount } from '../../api/userApi';
+import { fetchDevices, removeDevice, DeviceInfo } from '../../api/deviceApi';
 import { useTheme } from '../../theme/ThemeContext';
 
 export const SettingsScreen: React.FC = () => {
@@ -30,6 +32,47 @@ export const SettingsScreen: React.FC = () => {
   const [currentPw, setCurrentPw] = useState('');
   const [newPw, setNewPw] = useState('');
   const [savingPw, setSavingPw] = useState(false);
+
+  // Device management state
+  const [devices, setDevices] = useState<DeviceInfo[]>([]);
+  const [loadingDevices, setLoadingDevices] = useState(false);
+  const [showDevices, setShowDevices] = useState(false);
+
+  const loadDevices = useCallback(async () => {
+    setLoadingDevices(true);
+    try {
+      const list = await fetchDevices();
+      setDevices(list);
+    } catch {
+      // silently fail
+    } finally {
+      setLoadingDevices(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (showDevices) {
+      void loadDevices();
+    }
+  }, [showDevices, loadDevices]);
+
+  const handleRemoveDevice = (deviceId: string) => {
+    Alert.alert('Remove Device', 'Remove this device from your account?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await removeDevice(deviceId);
+            setDevices((prev) => prev.filter((d) => d.device_id !== deviceId));
+          } catch {
+            Alert.alert('Error', 'Failed to remove device');
+          }
+        },
+      },
+    ]);
+  };
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to log out?', [
@@ -237,6 +280,49 @@ export const SettingsScreen: React.FC = () => {
             trackColor={{ false: '#ccc', true: colors.primary }}
           />
         </View>
+      </View>
+
+      {/* Devices Section */}
+      <View style={[styles.section, { backgroundColor: surfaceBg }]}>
+        <TouchableOpacity
+          onPress={() => setShowDevices(!showDevices)}
+          style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={[styles.sectionTitle, { color: textTer }]}>Devices</Text>
+          <Text style={{ color: colors.primary, fontWeight: '500' }}>
+            {showDevices ? 'Hide' : 'Manage'}
+          </Text>
+        </TouchableOpacity>
+
+        {showDevices && (
+          <>
+            {loadingDevices ? (
+              <ActivityIndicator style={{ paddingVertical: 16 }} color={colors.primary} />
+            ) : devices.length === 0 ? (
+              <Text style={[styles.rowValue, { color: textSec, paddingVertical: 12 }]}>
+                No registered devices
+              </Text>
+            ) : (
+              devices.map((device) => (
+                <View key={device.device_id} style={[styles.row, { borderColor }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.rowLabel, { color: textColor }]}>
+                      {device.platform === 'android' ? '📱 Android' : '📱 iOS'}
+                      {device.app_version ? ` v${device.app_version}` : ''}
+                    </Text>
+                    <Text style={{ color: textTer, fontSize: 12, marginTop: 2 }}>
+                      Last seen: {new Date(device.last_seen_at).toLocaleDateString()}
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => handleRemoveDevice(device.device_id)}>
+                    <Text style={{ color: colors.danger, fontWeight: '600', fontSize: 13 }}>
+                      Remove
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ))
+            )}
+          </>
+        )}
       </View>
 
       {/* App Section */}

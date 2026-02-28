@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,20 @@ const TYPE_EMOJI: Record<string, string> = {
   exercise: '🏃',
   custom: '📝',
 };
+
+/** Convert 24-hour HH:MM string to 12-hour AM/PM format */
+function formatTime12h(time24: string): string {
+  const [hStr, mStr] = time24.split(':');
+  let h = parseInt(hStr, 10);
+  const m = mStr || '00';
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  if (h === 0) h = 12;
+  else if (h > 12) h -= 12;
+  return `${h}:${m} ${ampm}`;
+}
+
+const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 /** Check if a reminder should show today based on repeat_type and custom_days */
 function isScheduledForToday(reminder: Reminder): boolean {
@@ -138,6 +152,36 @@ export const TodayScreen: React.FC = () => {
     try { await loadAll(); } finally { setRefreshing(false); }
   }, [loadAll]);
 
+  // Auto-record missed completions for past-due reminders
+  const autoMissedRan = useRef(false);
+  useEffect(() => {
+    if (autoMissedRan.current) return;
+    const today = reminders.filter(isScheduledForToday);
+    const now2 = new Date();
+    const missedWithoutRecord = today.filter((r) => {
+      if (completionMap[r.id]) return false; // already has a record
+      const [h, m] = r.time_of_day.split(':').map(Number);
+      return now2.getHours() > h || (now2.getHours() === h && now2.getMinutes() >= m);
+    });
+    if (missedWithoutRecord.length === 0) return;
+    autoMissedRan.current = true;
+    // Record each as "missed" in background
+    Promise.all(
+      missedWithoutRecord.map(async (r) => {
+        try {
+          const record = await recordCompletion(r.id, 'missed', new Date().toISOString());
+          useCompletionStore.getState().addCompletion(record);
+        } catch {
+          // ignore individual failures
+        }
+      }),
+    ).then(() => {
+      fetchStreakInfo()
+        .then((s) => useCompletionStore.getState().setStreak(s))
+        .catch(() => {});
+    });
+  }, [reminders, completionMap]);
+
   const handleAction = async (reminder: Reminder, status: CompletionStatus) => {
     try {
       const scheduledAt = new Date().toISOString();
@@ -159,11 +203,7 @@ export const TodayScreen: React.FC = () => {
   };
 
   const now = new Date();
-  const dateStr = now.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  });
+  const dateStr = `${WEEKDAY_NAMES[now.getDay()]}, ${MONTH_NAMES[now.getMonth()]} ${now.getDate()}`;
 
   return (
     <View style={styles.container}>
@@ -210,6 +250,7 @@ export const TodayScreen: React.FC = () => {
         )}
         renderItem={({ item }) => {
           const timeStr = item.time_of_day.slice(0, 5);
+          const displayTime = formatTime12h(timeStr);
           const status = completionMap[item.id];
           const isDone = status === 'done' || status === 'skipped';
           const isMissed = !isDone && (() => {
@@ -227,7 +268,7 @@ export const TodayScreen: React.FC = () => {
                   {item.title}
                 </Text>
                 <Text style={styles.time}>
-                  {timeStr}
+                  {displayTime}
                   {item.reminder_type === 'medicine' && item.medicine_details?.dosage
                     ? ` · ${item.medicine_details.dosage}`
                     : ''}

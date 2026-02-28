@@ -1,5 +1,8 @@
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { useColorScheme, StatusBar } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const THEME_STORAGE_KEY = '@smart_routines_theme_mode';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -88,7 +91,22 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const systemScheme = useColorScheme();
-  const [mode, setMode] = useState<ThemeMode>('light');
+  const [mode, setModeState] = useState<ThemeMode>('light');
+
+  // Load persisted theme on mount
+  useEffect(() => {
+    AsyncStorage.getItem(THEME_STORAGE_KEY).then((stored) => {
+      if (stored === 'light' || stored === 'dark' || stored === 'system') {
+        setModeState(stored);
+      }
+    }).catch(() => {});
+  }, []);
+
+  // Persist theme whenever it changes
+  const setMode = useCallback((newMode: ThemeMode) => {
+    setModeState(newMode);
+    AsyncStorage.setItem(THEME_STORAGE_KEY, newMode).catch(() => {});
+  }, []);
 
   const isDark = useMemo(() => {
     if (mode === 'system') return systemScheme === 'dark';
@@ -98,13 +116,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   const colors = isDark ? darkColors : lightColors;
 
   const toggle = useCallback(() => {
-    setMode((prev) => {
-      if (prev === 'light') return 'dark';
-      if (prev === 'dark') return 'light';
-      // system → toggle based on current resolved value
-      return isDark ? 'light' : 'dark';
-    });
-  }, [isDark]);
+    setMode(
+      mode === 'light' ? 'dark' : mode === 'dark' ? 'light' : isDark ? 'light' : 'dark',
+    );
+  }, [mode, isDark, setMode]);
 
   const value = useMemo(
     () => ({ mode, isDark, colors, setMode, toggle }),

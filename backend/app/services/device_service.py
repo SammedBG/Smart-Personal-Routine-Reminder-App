@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,6 +40,12 @@ class DeviceService:
             await self.repo.save(device)
 
         return device
+
+    async def list_devices(self, user_id: UUID) -> List[Device]:
+        return await self.repo.list_for_user(user_id)
+
+    async def get_device(self, user_id: UUID, device_id: str) -> Optional[Device]:
+        return await self.repo.get_by_user_and_device_id(user_id, device_id)
 
     async def deactivate(self, device: Device) -> Device:
         device.is_active = False

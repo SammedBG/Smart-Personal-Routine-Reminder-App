@@ -80,6 +80,10 @@ export const ReminderEditScreen: React.FC = () => {
   const [durationMinutes, setDurationMinutes] = useState('30');
   const [intensity, setIntensity] = useState('Moderate');
 
+  // Date range fields
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
   useEffect(() => {
     if (existingReminder) {
       setTitle(existingReminder.title);
@@ -111,6 +115,14 @@ export const ReminderEditScreen: React.FC = () => {
         setExerciseType(ed.exercise_type || 'Cardio');
         setDurationMinutes(ed.duration_minutes ? String(ed.duration_minutes) : '30');
         setIntensity(ed.intensity || 'Moderate');
+      }
+
+      // Load date range
+      if (existingReminder.start_date) {
+        setStartDate(existingReminder.start_date.slice(0, 10));
+      }
+      if (existingReminder.end_date) {
+        setEndDate(existingReminder.end_date.slice(0, 10));
       }
     }
   }, [existingReminder]);
@@ -147,6 +159,8 @@ export const ReminderEditScreen: React.FC = () => {
             ? { days: customDays }
             : null,
         is_active: isActive,
+        start_date: startDate.trim() || null,
+        end_date: endDate.trim() || null,
       };
 
       // Add medicine details if type is medicine
@@ -409,6 +423,28 @@ export const ReminderEditScreen: React.FC = () => {
         <Text style={styles.label}>Active</Text>
         <Switch value={isActive} onValueChange={setIsActive} />
       </View>
+
+      <Text style={styles.label}>Start Date (optional, YYYY-MM-DD)</Text>
+      <TextInput
+        style={styles.input}
+        value={startDate}
+        onChangeText={setStartDate}
+        placeholder="e.g. 2025-01-15"
+        placeholderTextColor="#999"
+        keyboardType="numbers-and-punctuation"
+        maxLength={10}
+      />
+
+      <Text style={styles.label}>End Date (optional, YYYY-MM-DD)</Text>
+      <TextInput
+        style={styles.input}
+        value={endDate}
+        onChangeText={setEndDate}
+        placeholder="e.g. 2025-12-31"
+        placeholderTextColor="#999"
+        keyboardType="numbers-and-punctuation"
+        maxLength={10}
+      />
 
       <TouchableOpacity
         style={[styles.saveBtn, saving && { opacity: 0.6 }]}
