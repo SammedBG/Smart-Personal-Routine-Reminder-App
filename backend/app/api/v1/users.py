@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core.dependencies import CurrentUser
+from backend.app.core.security import get_password_hash, verify_password
 from backend.app.db.session import get_db
-from backend.app.schemas.user import UserRead
+from backend.app.schemas.user import PasswordChange, UserRead, UserUpdate
 
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -16,15 +17,41 @@ async def get_me(current_user: CurrentUser) -> UserRead:
 
 @router.patch("/me", response_model=UserRead, summary="Update current user profile")
 async def update_me(
-    payload: dict,
+    payload: UserUpdate,
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> UserRead:
-    allowed_fields = {"full_name"}
-    for key, value in payload.items():
-        if key in allowed_fields:
-            setattr(current_user, key, value)
+    update_data = payload.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(current_user, key, value)
     db.add(current_user)
     await db.flush()
     return UserRead.from_orm(current_user)
+
+
+@router.post("/me/password", status_code=status.HTTP_200_OK, summary="Change password")
+async def change_password(
+    payload: PasswordChange,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+    current_user.hashed_password = get_password_hash(payload.new_password)
+    db.add(current_user)
+    await db.flush()
+    return {"message": "Password updated successfully"}
+
+
+@router.delete("/me", status_code=status.HTTP_200_OK, summary="Delete account")
+async def delete_account(
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    await db.delete(current_user)
+    await db.flush()
+    return {"message": "Account deleted"}
 

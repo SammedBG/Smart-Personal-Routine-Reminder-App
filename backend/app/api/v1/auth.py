@@ -36,15 +36,12 @@ async def refresh_tokens(
     user_id = payload.get("sub")
     token_version = payload.get("tv", 0)
 
-    # Reuse CurrentUser logic by injecting a fake access token is complicated;
-    # instead, query user directly here to validate token_version.
-    from uuid import UUID
-
     from sqlalchemy import select
 
     from backend.app.models.user import User
 
-    result = await db.execute(select(User).where(User.id == UUID(user_id)))
+    # Use string comparison — User.id is String(36) in SQLite
+    result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user or not user.is_active or user.token_version != token_version:
         from fastapi import HTTPException, status

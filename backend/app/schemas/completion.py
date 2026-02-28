@@ -1,0 +1,46 @@
+from datetime import datetime, date
+from typing import List, Optional
+
+from pydantic import BaseModel, Field
+
+from backend.app.models.completion import CompletionStatus
+
+
+class CompletionCreate(BaseModel):
+    reminder_id: str
+    status: CompletionStatus
+    scheduled_at: datetime
+    snoozed_to: Optional[datetime] = None
+
+
+class CompletionRead(BaseModel):
+    id: str
+    reminder_id: str
+    user_id: str
+    scheduled_at: datetime
+    completed_at: Optional[datetime]
+    status: CompletionStatus
+    snoozed_to: Optional[datetime]
+    date_key: str
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+
+
+class DailyStats(BaseModel):
+    date: str  # YYYY-MM-DD
+    total: int
+    done: int
+    skipped: int
+    missed: int
+    completion_rate: float  # 0.0 - 1.0
+
+
+class StreakInfo(BaseModel):
+    current_streak: int  # consecutive days with 100% completion
+    longest_streak: int
+    today_done: int
+    today_total: int
+    today_rate: float
+    weekly_stats: List[DailyStats]

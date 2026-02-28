@@ -3,6 +3,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { apiClient } from '../api/client';
 import { useReminderStore, type Reminder } from '../store/reminderStore';
 import { loadAllRemindersFromDb, upsertRemindersInDb } from '../db/reminderDao';
+import { flushPendingChanges } from '../db/offlineQueue';
 
 let isSyncing = false;
 
@@ -18,6 +19,10 @@ export async function syncFromServer(): Promise<void> {
 
   try {
     isSyncing = true;
+
+    // First flush any pending offline changes
+    await flushPendingChanges();
+
     const { lastSyncAt } = useReminderStore.getState();
     const response = await apiClient.get<{
       reminders: Reminder[];

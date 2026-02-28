@@ -45,7 +45,8 @@ class ReminderRepository:
     async def list_changed_since(
         self, user_id: UUID, since: Optional[datetime]
     ) -> List[Reminder]:
-        query = self._base_query(user_id)
+        # Include soft-deleted records so clients can detect server-side deletions
+        query = select(Reminder).where(Reminder.user_id == user_id)
         if since is not None:
             query = query.where(Reminder.updated_at >= since)
         result = await self.db.execute(query)

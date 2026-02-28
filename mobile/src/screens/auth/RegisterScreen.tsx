@@ -8,7 +8,7 @@ import type { AuthStackParamList } from '../../navigation/auth/AuthStack';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 
-export const RegisterScreen: React.FC<Props> = () => {
+export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
@@ -16,10 +16,22 @@ export const RegisterScreen: React.FC<Props> = () => {
   const [error, setError] = useState<string | null>(null);
 
   const handleRegister = async () => {
+    if (!email.trim() || !password.trim()) {
+      setError('Email and password are required.');
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      await register({ email, password, full_name: fullName });
+      await register({ email: email.trim(), password, full_name: fullName.trim() || undefined });
     } catch (e) {
       setError('Registration failed. Try a different email.');
     } finally {
@@ -57,6 +69,12 @@ export const RegisterScreen: React.FC<Props> = () => {
         onPress={handleRegister}
         disabled={loading}
       />
+      <View style={styles.footer}>
+        <Text>Already have an account?</Text>
+        <Text style={styles.link} onPress={() => navigation.goBack()}>
+          Login
+        </Text>
+      </View>
     </View>
   );
 };
@@ -85,6 +103,15 @@ const styles = StyleSheet.create({
     color: 'red',
     marginBottom: 8,
     textAlign: 'center',
+  },
+  footer: {
+    marginTop: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  link: {
+    color: '#007bff',
   },
 });
 

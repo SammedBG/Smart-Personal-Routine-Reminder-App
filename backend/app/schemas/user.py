@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class UserBase(BaseModel):
@@ -11,6 +11,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    timezone: str = "UTC"
 
 
 class UserLogin(BaseModel):
@@ -21,12 +22,23 @@ class UserLogin(BaseModel):
 class UserRead(UserBase):
     id: str
     is_active: bool
+    timezone: str = "UTC"
     created_at: datetime
     updated_at: datetime
     last_login_at: Optional[datetime]
 
     class Config:
         orm_mode = True
+
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = Field(default=None, max_length=255)
+    timezone: Optional[str] = Field(default=None, max_length=64)
+
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=8)
 
 
 class TokenPair(BaseModel):

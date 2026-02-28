@@ -1,6 +1,9 @@
 import { apiClient } from './client';
 import { useAuthStore } from '../store/authStore';
 import { saveTokens, clearTokens, loadTokens } from '../services/SecureStorage';
+import axios from 'axios';
+
+const API_BASE_URL = 'http://10.0.2.2:8000/api/v1';
 
 type LoginPayload = {
   email: string;
@@ -47,6 +50,7 @@ export async function restoreSessionFromStorage(): Promise<void> {
   const stored = await loadTokens();
   if (!stored) return;
   try {
+    // Try the existing access token first
     const user = await apiClient
       .get<User>('/users/me', {
         headers: { Authorization: `Bearer ${stored.accessToken}` },
@@ -54,7 +58,26 @@ export async function restoreSessionFromStorage(): Promise<void> {
       .then((r) => r.data);
     useAuthStore.getState().setSession(user, stored.accessToken, stored.refreshToken);
   } catch {
-    await clearTokens();
+    // Access token may have expired — attempt refresh
+    if (!stored.refreshToken) {
+      await clearTokens();
+      return;
+    }
+    try {
+      const { data } = await axios.post<TokenPair>(`${API_BASE_URL}/auth/refresh`, null, {
+        params: { refresh_token: stored.refreshToken },
+        timeout: 10000,
+      });
+      const user = await apiClient
+        .get<User>('/users/me', {
+          headers: { Authorization: `Bearer ${data.access_token}` },
+        })
+        .then((r) => r.data);
+      useAuthStore.getState().setSession(user, data.access_token, data.refresh_token);
+      await saveTokens({ accessToken: data.access_token, refreshToken: data.refresh_token });
+    } catch {
+      await clearTokens();
+    }
   }
 }
 

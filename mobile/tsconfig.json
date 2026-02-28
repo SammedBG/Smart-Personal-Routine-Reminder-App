@@ -5,6 +5,8 @@
     "jsx": "react-native",
     "lib": ["esnext"],
     "allowJs": false,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
     "skipLibCheck": true,
     "noEmit": true,
     "strict": true,

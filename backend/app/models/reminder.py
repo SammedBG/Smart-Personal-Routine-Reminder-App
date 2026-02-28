@@ -1,10 +1,9 @@
 import enum
 import uuid
-from datetime import datetime, time
+from datetime import datetime, date, time
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Time
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy import JSON, Boolean, Date, DateTime, Enum, ForeignKey, Integer, String, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.db.base import Base, TimestampMixin
@@ -15,6 +14,7 @@ class ReminderType(str, enum.Enum):
     FOOD = "food"
     WATER = "water"
     SLEEP = "sleep"
+    EXERCISE = "exercise"
     CUSTOM = "custom"
 
 
@@ -28,11 +28,11 @@ class RepeatType(str, enum.Enum):
 class Reminder(TimestampMixin, Base):
     __tablename__ = "reminders"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
 
     title: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -48,9 +48,21 @@ class Reminder(TimestampMixin, Base):
         Enum(RepeatType, name="repeat_type"), nullable=False
     )
     # For weekly/custom: list of weekday numbers [0-6] or similar, stored as JSON
-    custom_days: Mapped[Optional[dict]] = mapped_column(JSONB)
+    custom_days: Mapped[Optional[dict]] = mapped_column(JSON)
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    # Schedule boundaries
+    start_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    end_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+
+    # Medicine-specific fields (JSON blob for flexibility)
+    # { "dosage": "500mg", "quantity": 1, "before_food": true, "duration_days": 30 }
+    medicine_details: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    # Exercise-specific fields
+    # { "exercise_type": "cardio", "duration_minutes": 30, "intensity": "moderate" }
+    exercise_details: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     next_trigger_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), index=True

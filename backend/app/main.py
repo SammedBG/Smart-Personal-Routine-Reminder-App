@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.config import get_settings
 # Import models so SQLAlchemy metadata is populated (for migrations and ORM)
-from backend.app.models import device, reminder, user  # noqa: F401
-from backend.app.api.v1 import auth, devices, health, reminders, users
+from backend.app.models import completion, device, reminder, user  # noqa: F401
+from backend.app.api.v1 import auth, completions, devices, health, reminders, users
 
 
 def create_app() -> FastAPI:
@@ -34,6 +34,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router, prefix=api_prefix)
     app.include_router(users.router, prefix=api_prefix)
     app.include_router(reminders.router, prefix=api_prefix)
+    app.include_router(completions.router, prefix=api_prefix)
     app.include_router(devices.router, prefix=api_prefix)
 
     return app
