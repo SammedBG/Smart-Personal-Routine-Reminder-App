@@ -1,5 +1,6 @@
 from typing import AsyncGenerator
 
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from backend.app.config import get_settings
@@ -7,9 +8,27 @@ from backend.app.config import get_settings
 
 settings = get_settings()
 
+_connect_args = {}
+if settings.database_url.startswith("sqlite"):
+    _connect_args = {"check_same_thread": False}
+
 engine = create_async_engine(
-    str(settings.database_url), echo=settings.sql_alchemy_echo, future=True
+    str(settings.database_url),
+    echo=settings.sql_alchemy_echo,
+    future=True,
+    connect_args=_connect_args,
 )
+
+
+# Enable WAL mode and foreign keys for SQLite
+if settings.database_url.startswith("sqlite"):
+    @event.listens_for(engine.sync_engine, "connect")
+    def _set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL;")
+        cursor.execute("PRAGMA foreign_keys=ON;")
+        cursor.close()
+
 
 AsyncSessionLocal = async_sessionmaker(
     autocommit=False,
@@ -22,5 +41,10 @@ AsyncSessionLocal = async_sessionmaker(
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 

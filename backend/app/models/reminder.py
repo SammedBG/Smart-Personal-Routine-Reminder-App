@@ -3,8 +3,7 @@ import uuid
 from datetime import datetime, time
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Time
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Integer, String, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.db.base import Base, TimestampMixin
@@ -29,10 +28,10 @@ class Reminder(TimestampMixin, Base):
     __tablename__ = "reminders"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
 
     title: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -48,7 +47,7 @@ class Reminder(TimestampMixin, Base):
         Enum(RepeatType, name="repeat_type"), nullable=False
     )
     # For weekly/custom: list of weekday numbers [0-6] or similar, stored as JSON
-    custom_days: Mapped[Optional[dict]] = mapped_column(JSONB)
+    custom_days: Mapped[Optional[dict]] = mapped_column(JSON)
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
