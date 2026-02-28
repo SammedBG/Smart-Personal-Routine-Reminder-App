@@ -1,0 +1,347 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Switch,
+  ScrollView,
+  StyleSheet,
+  Alert,
+} from 'react-native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+import {
+  createReminder,
+  updateReminder,
+  deleteReminder,
+} from '../../api/reminderApi';
+import {
+  useReminderStore,
+  ReminderType,
+  RepeatType,
+} from '../../store/reminderStore';
+import type { RootStackParamList } from '../../navigation/RootNavigator';
+
+const REMINDER_TYPES: { label: string; value: ReminderType }[] = [
+  { label: '💊 Medicine', value: 'medicine' },
+  { label: '🍎 Food', value: 'food' },
+  { label: '💧 Water', value: 'water' },
+  { label: '😴 Sleep', value: 'sleep' },
+  { label: '✏️ Custom', value: 'custom' },
+];
+
+const REPEAT_TYPES: { label: string; value: RepeatType }[] = [
+  { label: 'Once', value: 'once' },
+  { label: 'Daily', value: 'daily' },
+  { label: 'Weekly', value: 'weekly' },
+  { label: 'Custom', value: 'custom' },
+];
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+type ScreenRoute = RouteProp<RootStackParamList, 'ReminderEdit'>;
+type ScreenNav = NativeStackNavigationProp<RootStackParamList>;
+
+export const ReminderEditScreen: React.FC = () => {
+  const navigation = useNavigation<ScreenNav>();
+  const route = useRoute<ScreenRoute>();
+  const reminderId = route.params?.reminderId;
+  const isEdit = !!reminderId;
+
+  const existingReminder = useReminderStore((s) =>
+    s.reminders.find((r) => r.id === reminderId),
+  );
+
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [reminderType, setReminderType] = useState<ReminderType>('medicine');
+  const [timeOfDay, setTimeOfDay] = useState('08:00');
+  const [repeatType, setRepeatType] = useState<RepeatType>('daily');
+  const [customDays, setCustomDays] = useState<number[]>([]);
+  const [isActive, setIsActive] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (existingReminder) {
+      setTitle(existingReminder.title);
+      setDescription(existingReminder.description || '');
+      setReminderType(existingReminder.reminder_type);
+      // Strip seconds from time_of_day for display (HH:MM:SS -> HH:MM)
+      const t = existingReminder.time_of_day;
+      setTimeOfDay(t.length > 5 ? t.slice(0, 5) : t);
+      setRepeatType(existingReminder.repeat_type);
+      if (
+        existingReminder.custom_days &&
+        Array.isArray((existingReminder.custom_days as any).days)
+      ) {
+        setCustomDays((existingReminder.custom_days as any).days);
+      }
+      setIsActive(existingReminder.is_active);
+    }
+  }, [existingReminder]);
+
+  const toggleDay = (index: number) => {
+    setCustomDays((prev) =>
+      prev.includes(index)
+        ? prev.filter((d) => d !== index)
+        : [...prev, index].sort(),
+    );
+  };
+
+  const handleSave = async () => {
+    if (!title.trim()) {
+      Alert.alert('Validation', 'Title is required');
+      return;
+    }
+    if (!/^\d{2}:\d{2}(:\d{2})?$/.test(timeOfDay)) {
+      Alert.alert('Validation', 'Time must be in HH:MM format');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        title: title.trim(),
+        description: description.trim() || undefined,
+        reminder_type: reminderType,
+        time_of_day: timeOfDay.length === 5 ? timeOfDay + ':00' : timeOfDay,
+        repeat_type: repeatType,
+        custom_days:
+          (repeatType === 'weekly' || repeatType === 'custom') &&
+          customDays.length > 0
+            ? { days: customDays }
+            : null,
+        is_active: isActive,
+      };
+
+      if (isEdit && reminderId) {
+        await updateReminder(reminderId, payload);
+      } else {
+        await createReminder(payload);
+      }
+      navigation.goBack();
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Failed to save reminder');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = () => {
+    if (!reminderId) return;
+    Alert.alert(
+      'Delete Reminder',
+      'Are you sure you want to delete this reminder?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteReminder(reminderId);
+              navigation.goBack();
+            } catch (e: any) {
+              Alert.alert('Error', e?.message || 'Failed to delete');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Text style={styles.label}>Title</Text>
+      <TextInput
+        style={styles.input}
+        value={title}
+        onChangeText={setTitle}
+        placeholder="e.g. Take morning vitamins"
+        placeholderTextColor="#999"
+        maxLength={255}
+      />
+
+      <Text style={styles.label}>Description (optional)</Text>
+      <TextInput
+        style={[styles.input, { minHeight: 60, textAlignVertical: 'top' }]}
+        value={description}
+        onChangeText={setDescription}
+        placeholder="Additional details..."
+        placeholderTextColor="#999"
+        multiline
+        maxLength={1024}
+      />
+
+      <Text style={styles.label}>Type</Text>
+      <View style={styles.chipRow}>
+        {REMINDER_TYPES.map((t) => (
+          <TouchableOpacity
+            key={t.value}
+            style={[
+              styles.chip,
+              reminderType === t.value && styles.chipSelected,
+            ]}
+            onPress={() => setReminderType(t.value)}>
+            <Text
+              style={[
+                styles.chipText,
+                reminderType === t.value && styles.chipTextSelected,
+              ]}>
+              {t.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <Text style={styles.label}>Time</Text>
+      <TextInput
+        style={styles.input}
+        value={timeOfDay}
+        onChangeText={setTimeOfDay}
+        placeholder="HH:MM"
+        placeholderTextColor="#999"
+        keyboardType="numbers-and-punctuation"
+        maxLength={8}
+      />
+
+      <Text style={styles.label}>Repeat</Text>
+      <View style={styles.chipRow}>
+        {REPEAT_TYPES.map((t) => (
+          <TouchableOpacity
+            key={t.value}
+            style={[
+              styles.chip,
+              repeatType === t.value && styles.chipSelected,
+            ]}
+            onPress={() => setRepeatType(t.value)}>
+            <Text
+              style={[
+                styles.chipText,
+                repeatType === t.value && styles.chipTextSelected,
+              ]}>
+              {t.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {(repeatType === 'weekly' || repeatType === 'custom') && (
+        <>
+          <Text style={styles.label}>Days</Text>
+          <View style={styles.chipRow}>
+            {WEEKDAYS.map((day, i) => (
+              <TouchableOpacity
+                key={day}
+                style={[
+                  styles.dayChip,
+                  customDays.includes(i) && styles.dayChipSelected,
+                ]}
+                onPress={() => toggleDay(i)}>
+                <Text
+                  style={[
+                    styles.dayText,
+                    customDays.includes(i) && styles.dayTextSelected,
+                  ]}>
+                  {day}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </>
+      )}
+
+      <View style={styles.switchRow}>
+        <Text style={styles.label}>Active</Text>
+        <Switch value={isActive} onValueChange={setIsActive} />
+      </View>
+
+      <TouchableOpacity
+        style={[styles.saveBtn, saving && { opacity: 0.6 }]}
+        onPress={handleSave}
+        disabled={saving}>
+        <Text style={styles.saveBtnText}>
+          {saving ? 'Saving...' : isEdit ? 'Update Reminder' : 'Create Reminder'}
+        </Text>
+      </TouchableOpacity>
+
+      {isEdit && (
+        <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
+          <Text style={styles.deleteBtnText}>Delete Reminder</Text>
+        </TouchableOpacity>
+      )}
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#fff' },
+  content: { padding: 16, paddingBottom: 40 },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 16,
+    marginBottom: 6,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    backgroundColor: '#fafafa',
+    color: '#222',
+  },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    backgroundColor: '#f5f5f5',
+  },
+  chipSelected: { backgroundColor: '#4A90D9', borderColor: '#4A90D9' },
+  chipText: { fontSize: 13, color: '#333' },
+  chipTextSelected: { color: '#fff', fontWeight: '600' },
+  dayChip: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  dayChipSelected: { backgroundColor: '#4A90D9', borderColor: '#4A90D9' },
+  dayText: { fontSize: 12, color: '#333' },
+  dayTextSelected: { color: '#fff', fontWeight: '600' },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 16,
+  },
+  saveBtn: {
+    marginTop: 24,
+    backgroundColor: '#4A90D9',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  deleteBtn: {
+    marginTop: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#d9534f',
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  deleteBtnText: { color: '#d9534f', fontSize: 16, fontWeight: '600' },
+});

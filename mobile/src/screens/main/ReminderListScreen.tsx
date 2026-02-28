@@ -1,28 +1,70 @@
-import React, { useEffect } from 'react';
-import { View, Text, FlatList, Button, StyleSheet, Switch } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  RefreshControl,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useReminderStore } from '../../store/reminderStore';
 import { fetchReminders, toggleReminder } from '../../api/reminderApi';
+import type { RootStackParamList } from '../../navigation/RootNavigator';
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+const TYPE_EMOJI: Record<string, string> = {
+  medicine: '💊',
+  food: '🍎',
+  water: '💧',
+  sleep: '😴',
+  custom: '📝',
+};
 
 export const ReminderListScreen: React.FC = () => {
   const reminders = useReminderStore((s) => s.reminders);
+  const navigation = useNavigation<Nav>();
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     void fetchReminders();
   }, []);
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchReminders();
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+
   return (
     <View style={styles.container}>
-      <Button title="Refresh" onPress={() => void fetchReminders()} />
       <FlatList
         data={reminders}
         keyExtractor={(item) => item.id}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         renderItem={({ item }) => (
-          <View style={styles.item}>
-            <View style={{ flex: 1 }}>
+          <TouchableOpacity
+            style={styles.item}
+            activeOpacity={0.7}
+            onPress={() =>
+              navigation.navigate('ReminderEdit', { reminderId: item.id })
+            }>
+            <Text style={styles.emoji}>
+              {TYPE_EMOJI[item.reminder_type] || '📝'}
+            </Text>
+            <View style={styles.info}>
               <Text style={styles.title}>{item.title}</Text>
               <Text style={styles.subtitle}>
-                {item.reminder_type} • {item.time_of_day}
+                {item.time_of_day.slice(0, 5)} · {item.repeat_type}
               </Text>
             </View>
             <Switch
@@ -31,10 +73,21 @@ export const ReminderListScreen: React.FC = () => {
                 void toggleReminder(item.id);
               }}
             />
-          </View>
+          </TouchableOpacity>
         )}
-        ListEmptyComponent={<Text style={styles.empty}>No reminders yet.</Text>}
+        ListEmptyComponent={
+          <Text style={styles.empty}>
+            No reminders yet.{'\n'}Tap + to create one.
+          </Text>
+        }
       />
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={styles.fab}
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate('ReminderEdit')}>
+        <Text style={styles.fabText}>+</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -42,27 +95,61 @@ export const ReminderListScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    backgroundColor: '#fff',
   },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#ddd',
+    borderColor: '#e0e0e0',
+  },
+  emoji: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  info: {
+    flex: 1,
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#222',
   },
   subtitle: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 13,
+    color: '#888',
+    marginTop: 2,
   },
   empty: {
-    marginTop: 24,
+    marginTop: 48,
     textAlign: 'center',
-    color: '#666',
+    color: '#999',
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#4A90D9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.27,
+    shadowRadius: 4.65,
+  },
+  fabText: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: '400',
+    marginTop: -2,
   },
 });
 

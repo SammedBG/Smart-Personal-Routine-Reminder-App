@@ -34,6 +34,13 @@ export async function updateReminder(id: string, payload: Partial<ReminderPayloa
   useReminderStore.getState().setReminders(all);
 }
 
+export async function deleteReminder(id: string): Promise<void> {
+  await apiClient.delete(`/reminders/${id}`);
+  // Remove from local DB and store
+  const current = useReminderStore.getState().reminders.filter((r) => r.id !== id);
+  useReminderStore.getState().setReminders(current);
+}
+
 export async function toggleReminder(id: string): Promise<void> {
   const updated = await apiClient.post<Reminder>(`/reminders/${id}/toggle`).then((r) => r.data);
   await upsertRemindersInDb([updated]);

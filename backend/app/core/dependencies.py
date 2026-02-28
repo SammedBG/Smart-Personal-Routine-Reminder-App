@@ -1,5 +1,4 @@
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -37,15 +36,7 @@ async def get_current_user(
             detail="Invalid token payload",
         )
 
-    try:
-        user_id = UUID(user_id_str)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid user id in token",
-        )
-
-    result = await db.execute(select(User).where(User.id == user_id))
+    result = await db.execute(select(User).where(User.id == user_id_str))
     user = result.scalar_one_or_none()
     if not user or not user.is_active:
         raise HTTPException(
