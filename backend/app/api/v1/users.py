@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core.dependencies import CurrentUser
-from backend.app.core.security import hash_password, verify_password
+from backend.app.core.security import get_password_hash, verify_password
 from backend.app.db.session import get_db
 from backend.app.schemas.user import PasswordChange, UserRead, UserUpdate
 
@@ -40,7 +40,7 @@ async def change_password(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Current password is incorrect",
         )
-    current_user.hashed_password = hash_password(payload.new_password)
+    current_user.hashed_password = get_password_hash(payload.new_password)
     db.add(current_user)
     await db.flush()
     return {"message": "Password updated successfully"}

@@ -9,6 +9,10 @@ let dbInstance: SQLiteDatabase | null = null;
 export async function getDatabase(): Promise<SQLiteDatabase> {
   if (dbInstance) return dbInstance;
   dbInstance = await SQLite.openDatabase({ name: DB_NAME, location: 'default' });
+
+  // Enable WAL mode for better concurrent performance
+  await dbInstance.executeSql('PRAGMA journal_mode=WAL;');
+
   await dbInstance.executeSql(`
     CREATE TABLE IF NOT EXISTS reminders (
       id TEXT PRIMARY KEY,
@@ -21,12 +25,30 @@ export async function getDatabase(): Promise<SQLiteDatabase> {
       is_active INTEGER NOT NULL,
       next_trigger_at TEXT,
       last_triggered_at TEXT,
+      start_date TEXT,
+      end_date TEXT,
+      medicine_details TEXT,
+      exercise_details TEXT,
       version INTEGER NOT NULL,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       deleted INTEGER DEFAULT 0
     );
   `);
+
+  // Add new columns if upgrading from older schema (gracefully ignore if exists)
+  const addColumnSafely = async (col: string, type: string) => {
+    try {
+      await dbInstance!.executeSql(`ALTER TABLE reminders ADD COLUMN ${col} ${type};`);
+    } catch {
+      // column already exists, ignore
+    }
+  };
+  await addColumnSafely('start_date', 'TEXT');
+  await addColumnSafely('end_date', 'TEXT');
+  await addColumnSafely('medicine_details', 'TEXT');
+  await addColumnSafely('exercise_details', 'TEXT');
+
   await dbInstance.executeSql(`
     CREATE TABLE IF NOT EXISTS pending_changes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

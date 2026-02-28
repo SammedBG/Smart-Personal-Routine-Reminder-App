@@ -18,6 +18,10 @@ export async function loadAllRemindersFromDb(): Promise<Reminder[]> {
       is_active: row.is_active === 1,
       next_trigger_at: row.next_trigger_at,
       last_triggered_at: row.last_triggered_at,
+      start_date: row.start_date || null,
+      end_date: row.end_date || null,
+      medicine_details: row.medicine_details ? JSON.parse(row.medicine_details) : null,
+      exercise_details: row.exercise_details ? JSON.parse(row.exercise_details) : null,
       version: row.version,
       created_at: row.created_at,
       updated_at: row.updated_at,
@@ -39,8 +43,9 @@ export async function upsertRemindersInDb(reminders: Reminder[]): Promise<void> 
       tx.executeSql(
         `INSERT OR REPLACE INTO reminders
         (id, title, description, reminder_type, time_of_day, repeat_type, custom_days,
-         is_active, next_trigger_at, last_triggered_at, version, created_at, updated_at, deleted)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+         is_active, next_trigger_at, last_triggered_at, start_date, end_date,
+         medicine_details, exercise_details, version, created_at, updated_at, deleted)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
         [
           r.id,
           r.title,
@@ -52,6 +57,10 @@ export async function upsertRemindersInDb(reminders: Reminder[]): Promise<void> 
           r.is_active ? 1 : 0,
           r.next_trigger_at ?? null,
           r.last_triggered_at ?? null,
+          r.start_date ?? null,
+          r.end_date ?? null,
+          r.medicine_details ? JSON.stringify(r.medicine_details) : null,
+          r.exercise_details ? JSON.stringify(r.exercise_details) : null,
           r.version,
           r.created_at,
           r.updated_at,
