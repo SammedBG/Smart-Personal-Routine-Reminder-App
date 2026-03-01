@@ -11,6 +11,7 @@ import {
   Animated,
   Alert,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -131,6 +132,8 @@ export const ReminderListScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [initialLoading, setInitialLoading] = useState(true);
+  const [typeFilter, setTypeFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   useEffect(() => {
     fetchReminders().finally(() => setInitialLoading(false));
@@ -166,11 +169,29 @@ export const ReminderListScreen: React.FC = () => {
     void toggleReminder(id);
   };
 
-  const filteredReminders = search.trim()
-    ? reminders.filter((r) =>
-        r.title.toLowerCase().includes(search.trim().toLowerCase()),
-      )
-    : reminders;
+  const filteredReminders = reminders.filter((r) => {
+    if (search.trim() && !r.title.toLowerCase().includes(search.trim().toLowerCase())) {
+      return false;
+    }
+    if (typeFilter && r.reminder_type !== typeFilter) return false;
+    if (statusFilter === 'active' && !r.is_active) return false;
+    if (statusFilter === 'inactive' && r.is_active) return false;
+    return true;
+  });
+
+  const TYPE_CHIPS = [
+    { key: 'medicine', label: '💊 Medicine' },
+    { key: 'food', label: '🍎 Food' },
+    { key: 'water', label: '💧 Water' },
+    { key: 'sleep', label: '😴 Sleep' },
+    { key: 'exercise', label: '🏃 Exercise' },
+    { key: 'custom', label: '📝 Custom' },
+  ];
+  const STATUS_CHIPS = [
+    { key: 'all' as const, label: 'All' },
+    { key: 'active' as const, label: 'Active' },
+    { key: 'inactive' as const, label: 'Inactive' },
+  ];
 
   return (
     <View style={styles.container}>
@@ -188,6 +209,29 @@ export const ReminderListScreen: React.FC = () => {
             clearButtonMode="while-editing"
           />
         </View>
+      </View>
+
+      {/* Filter chips */}
+      <View style={styles.chipBar}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
+          {STATUS_CHIPS.map((c) => (
+            <TouchableOpacity
+              key={c.key}
+              style={[styles.chip, statusFilter === c.key && styles.chipActive]}
+              onPress={() => setStatusFilter(c.key)}>
+              <Text style={[styles.chipText, statusFilter === c.key && styles.chipTextActive]}>{c.label}</Text>
+            </TouchableOpacity>
+          ))}
+          <View style={styles.chipDivider} />
+          {TYPE_CHIPS.map((c) => (
+            <TouchableOpacity
+              key={c.key}
+              style={[styles.chip, typeFilter === c.key && styles.chipActive]}
+              onPress={() => setTypeFilter(typeFilter === c.key ? null : c.key)}>
+              <Text style={[styles.chipText, typeFilter === c.key && styles.chipTextActive]}>{c.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       <FlatList
@@ -279,6 +323,41 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#222',
     paddingVertical: 6,
+  },
+  chipBar: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: '#e0e0e0',
+  },
+  chipScroll: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: '#f0f0f0',
+    marginRight: 4,
+  },
+  chipActive: {
+    backgroundColor: '#4A90D9',
+  },
+  chipText: {
+    fontSize: 12,
+    color: '#555',
+  },
+  chipTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  chipDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: '#ddd',
+    marginHorizontal: 4,
   },
   item: {
     flexDirection: 'row',
