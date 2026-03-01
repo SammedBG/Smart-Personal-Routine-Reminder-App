@@ -48,7 +48,7 @@ const AppInner = () => {
       }
       // Start auto-sync listener for connectivity changes
       startNetInfoListener();
-      setBootstrapping(false);", "oldString": "      try {\n        await syncFromServer();\n      } catch (e) {\n        console.warn('Sync from server failed:', e);\n      }\n      setBootstrapping(false);
+      setBootstrapping(false);
     };
     void bootstrap();
   }, []);

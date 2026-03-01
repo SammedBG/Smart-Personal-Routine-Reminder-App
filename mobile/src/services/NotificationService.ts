@@ -102,7 +102,7 @@ export function scheduleLocalNotification(reminder: Reminder): void {
     title: reminder.title,
     userInfo: { reminderId: reminder.id },
     allowWhileIdle: true,
-    id: reminder.id.hashCode?.() || Math.abs(hashCode(reminder.id)),
+    id: Math.abs(hashCode(reminder.id)),
   };
   PushNotification.localNotificationSchedule(notification);
 }

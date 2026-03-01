@@ -20,6 +20,7 @@ import {
   fetchStreakInfo,
   CompletionStatus,
 } from '../../api/completionApi';
+import { useTheme } from '../../theme/ThemeContext';
 
 const TYPE_EMOJI: Record<string, string> = {
   medicine: '💊',
@@ -74,6 +75,7 @@ type SectionData = {
 };
 
 export const TodayScreen: React.FC = () => {
+  const { isDark, colors } = useTheme();
   const reminders = useReminderStore((s) => s.reminders);
   const todayCompletions = useCompletionStore((s) => s.todayCompletions);
   const streak = useCompletionStore((s) => s.streak);
@@ -216,20 +218,20 @@ export const TodayScreen: React.FC = () => {
 
   if (initialLoading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#4A90D9" />
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header with date + streak */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <View>
-          <Text style={styles.date}>{dateStr}</Text>
+          <Text style={[styles.date, { color: colors.text }]}>{dateStr}</Text>
           {streak && streak.current_streak > 0 && (
-            <Text style={styles.streakBadge}>
+            <Text style={[styles.streakBadge, { color: colors.warning }]}>
               🔥 {streak.current_streak} day streak
             </Text>
           )}
@@ -237,21 +239,21 @@ export const TodayScreen: React.FC = () => {
       </View>
 
       {/* Progress bar */}
-      <View style={styles.progressContainer}>
+      <View style={[styles.progressContainer, { backgroundColor: colors.cardBg }]}>
         <View style={styles.progressRow}>
-          <Text style={styles.progressLabel}>Today&apos;s Progress</Text>
-          <Text style={styles.progressPct}>{progressPct}%</Text>
+          <Text style={[styles.progressLabel, { color: colors.text }]}>Today&apos;s Progress</Text>
+          <Text style={[styles.progressPct, { color: colors.primary }]}>{progressPct}%</Text>
         </View>
-        <View style={styles.progressBarBg}>
+        <View style={[styles.progressBarBg, { backgroundColor: colors.primaryLight }]}>
           <View
             style={[
               styles.progressBarFill,
-              { width: `${progressPct}%` as any },
-              progressPct === 100 && styles.progressComplete,
+              { width: `${progressPct}%` as any, backgroundColor: colors.primary },
+              progressPct === 100 && { backgroundColor: colors.success },
             ]}
           />
         </View>
-        <Text style={styles.progressSubtext}>
+        <Text style={[styles.progressSubtext, { color: colors.textTertiary }]}>
           {doneCount} of {totalToday} completed
         </Text>
       </View>
@@ -263,7 +265,7 @@ export const TodayScreen: React.FC = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         renderSectionHeader={({ section }) => (
-          <Text style={styles.sectionHeader}>{section.title}</Text>
+          <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>{section.title}</Text>
         )}
         renderItem={({ item }) => {
           const timeStr = item.time_of_day.slice(0, 5);
@@ -276,15 +278,20 @@ export const TodayScreen: React.FC = () => {
           })();
 
           return (
-            <View style={[styles.card, isDone && styles.cardDone, isMissed && styles.cardMissed]}>
+            <View style={[
+              styles.card,
+              { backgroundColor: colors.cardBg },
+              isDone && { backgroundColor: isDark ? '#1a2e1a' : '#f0f9f0', opacity: 0.8 },
+              isMissed && styles.cardMissed,
+            ]}>
               <Text style={styles.emoji}>
                 {TYPE_EMOJI[item.reminder_type] || '📝'}
               </Text>
               <View style={styles.info}>
-                <Text style={[styles.title, isDone && styles.titleDone]}>
+                <Text style={[styles.title, { color: colors.text }, isDone && { color: colors.textTertiary, textDecorationLine: 'line-through' }]}>
                   {item.title}
                 </Text>
-                <Text style={styles.time}>
+                <Text style={[styles.time, { color: colors.primary }]}>
                   {displayTime}
                   {item.reminder_type === 'medicine' && item.medicine_details?.dosage
                     ? ` · ${item.medicine_details.dosage}`
@@ -292,7 +299,7 @@ export const TodayScreen: React.FC = () => {
                 </Text>
               </View>
               {isDone ? (
-                <View style={styles.doneCheckContainer}>
+                <View style={[styles.doneCheckContainer, { backgroundColor: colors.success }]}>
                   <Text style={styles.doneCheck}>
                     {status === 'done' ? '✓' : '⏭'}
                   </Text>
@@ -300,17 +307,17 @@ export const TodayScreen: React.FC = () => {
               ) : (
                 <View style={styles.actionRow}>
                   <TouchableOpacity
-                    style={[styles.actionBtn, styles.actionDone]}
+                    style={[styles.actionBtn, { backgroundColor: colors.success }]}
                     onPress={() => handleAction(item, 'done')}>
                     <Text style={styles.actionBtnText}>✓</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.actionBtn, styles.actionSkip]}
+                    style={[styles.actionBtn, { backgroundColor: colors.primaryLight }]}
                     onPress={() => handleAction(item, 'skipped')}>
                     <Text style={styles.actionBtnTextAlt}>⏭</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.actionBtn, styles.actionSnooze]}
+                    style={[styles.actionBtn, { backgroundColor: isDark ? '#3a2800' : '#fff3e0' }]}
                     onPress={() => handleAction(item, 'snoozed')}>
                     <Text style={styles.actionBtnTextAlt}>⏰</Text>
                   </TouchableOpacity>
@@ -320,7 +327,7 @@ export const TodayScreen: React.FC = () => {
           );
         }}
         ListEmptyComponent={
-          <Text style={styles.empty}>No reminders for today 🎉</Text>
+          <Text style={[styles.empty, { color: colors.textTertiary }]}>No reminders for today 🎉</Text>
         }
       />
     </View>
@@ -330,27 +337,22 @@ export const TodayScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f7f8fc',
   },
   header: {
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 8,
-    backgroundColor: '#fff',
   },
   date: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222',
   },
   streakBadge: {
     fontSize: 14,
-    color: '#e67e22',
     fontWeight: '600',
     marginTop: 4,
   },
   progressContainer: {
-    backgroundColor: '#fff',
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 8,
@@ -370,37 +372,28 @@ const styles = StyleSheet.create({
   progressLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
   },
   progressPct: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#4A90D9',
   },
   progressBarBg: {
     height: 8,
-    backgroundColor: '#e8ecf4',
     borderRadius: 4,
     marginTop: 8,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: 8,
-    backgroundColor: '#4A90D9',
     borderRadius: 4,
-  },
-  progressComplete: {
-    backgroundColor: '#27ae60',
   },
   progressSubtext: {
     fontSize: 12,
-    color: '#888',
     marginTop: 6,
   },
   sectionHeader: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#666',
     textTransform: 'uppercase',
     paddingHorizontal: 16,
     paddingTop: 16,
@@ -415,16 +408,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 8,
     borderRadius: 12,
-    backgroundColor: '#fff',
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 2,
-  },
-  cardDone: {
-    backgroundColor: '#f0f9f0',
-    opacity: 0.8,
   },
   cardMissed: {
     borderLeftWidth: 3,
@@ -440,15 +428,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222',
-  },
-  titleDone: {
-    color: '#999',
-    textDecorationLine: 'line-through',
   },
   time: {
     fontSize: 13,
-    color: '#4A90D9',
     marginTop: 2,
     fontWeight: '500',
   },
@@ -463,15 +445,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionDone: {
-    backgroundColor: '#27ae60',
-  },
-  actionSkip: {
-    backgroundColor: '#e8ecf4',
-  },
-  actionSnooze: {
-    backgroundColor: '#fff3e0',
-  },
   actionBtnText: {
     color: '#fff',
     fontSize: 16,
@@ -484,7 +457,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#27ae60',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -496,7 +468,6 @@ const styles = StyleSheet.create({
   empty: {
     marginTop: 48,
     textAlign: 'center',
-    color: '#999',
     fontSize: 15,
   },
 });
