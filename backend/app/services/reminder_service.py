@@ -12,41 +12,65 @@ def compute_next_trigger(
     time_of_day: time,
     repeat_type: str,
     custom_days: dict | None,
+    start_date: date | None = None,
+    end_date: date | None = None,
 ) -> datetime | None:
     """Compute the next trigger datetime based on the reminder schedule."""
     now = datetime.utcnow()
     today = now.date()
-    trigger_time = datetime.combine(today, time_of_day)
+
+    # If end_date is in the past, no more triggers
+    if end_date and end_date < today:
+        return None
+
+    # Earliest allowed date
+    effective_today = max(today, start_date) if start_date else today
+    trigger_time = datetime.combine(effective_today, time_of_day)
+
+    # Helper: check candidate is within date bounds
+    def _in_bounds(dt: datetime) -> bool:
+        d = dt.date()
+        if start_date and d < start_date:
+            return False
+        if end_date and d > end_date:
+            return False
+        return True
 
     if repeat_type == "daily":
-        return trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
+        candidate = trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
+        return candidate if _in_bounds(candidate) else None
 
     if repeat_type == "once":
-        return trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
+        candidate = trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
+        return candidate if _in_bounds(candidate) else None
 
     if repeat_type in ("weekly", "custom") and custom_days:
         days = custom_days.get("days", [])
         if not days:
-            # No specific days configured → treat as daily
-            return trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
+            candidate = trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
+            return candidate if _in_bounds(candidate) else None
 
         # days list uses: 0=Sun,1=Mon,...,6=Sat  (JS convention)
         # Python weekday:  0=Mon,1=Tue,...,6=Sun
-        # Convert Python weekday → JS convention
-        js_today = (now.weekday() + 1) % 7
+        js_today = (effective_today.weekday() + 1) % 7
 
-        # Check if today is a scheduled day and trigger time is still in the future
+        # Check if effective_today is a scheduled day and trigger time is still in the future
         if js_today in days and trigger_time > now:
-            return trigger_time
+            if _in_bounds(trigger_time):
+                return trigger_time
 
         # Find the next scheduled day
         for offset in range(1, 8):
-            candidate = (js_today + offset) % 7
-            if candidate in days:
-                return datetime.combine(today + timedelta(days=offset), time_of_day)
+            candidate_js = (js_today + offset) % 7
+            if candidate_js in days:
+                candidate = datetime.combine(effective_today + timedelta(days=offset), time_of_day)
+                if _in_bounds(candidate):
+                    return candidate
+        return None
 
     # Fallback
-    return trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
+    candidate = trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
+    return candidate if _in_bounds(candidate) else None
 
 
 class ReminderService:
@@ -62,7 +86,8 @@ class ReminderService:
 
     async def create_reminder(self, user_id: UUID, data: ReminderCreate) -> Reminder:
         next_trigger = compute_next_trigger(
-            data.time_of_day, data.repeat_type.value, data.custom_days
+            data.time_of_day, data.repeat_type.value, data.custom_days,
+            start_date=data.start_date, end_date=data.end_date,
         )
         reminder = Reminder(
             user_id=user_id,
@@ -102,6 +127,8 @@ class ReminderService:
             if hasattr(reminder.repeat_type, "value")
             else reminder.repeat_type,
             reminder.custom_days,
+            start_date=reminder.start_date,
+            end_date=reminder.end_date,
         )
 
         await self.repo.save(reminder)

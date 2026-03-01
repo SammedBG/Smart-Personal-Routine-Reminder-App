@@ -10,6 +10,7 @@ import {
   RefreshControl,
   Animated,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -129,9 +130,10 @@ export const ReminderListScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
-    void fetchReminders();
+    fetchReminders().finally(() => setInitialLoading(false));
   }, []);
 
   useFocusEffect(
@@ -193,6 +195,11 @@ export const ReminderListScreen: React.FC = () => {
         keyExtractor={(item) => item.id}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListHeaderComponent={
+          initialLoading ? (
+            <ActivityIndicator size="large" color="#4A90D9" style={{ paddingVertical: 32 }} />
+          ) : null
         }
         renderItem={({ item }) => (
           <SwipeableRow

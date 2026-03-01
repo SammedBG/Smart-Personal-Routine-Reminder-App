@@ -7,6 +7,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -43,9 +44,15 @@ function formatTime12h(time24: string): string {
 const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-/** Check if a reminder should show today based on repeat_type and custom_days */
+/** Check if a reminder should show today based on repeat_type, custom_days, and date range */
 function isScheduledForToday(reminder: Reminder): boolean {
   if (!reminder.is_active) return false;
+
+  // Enforce start_date / end_date boundaries
+  const todayStr = new Date().toISOString().slice(0, 10);
+  if (reminder.start_date && todayStr < reminder.start_date.slice(0, 10)) return false;
+  if (reminder.end_date && todayStr > reminder.end_date.slice(0, 10)) return false;
+
   const { repeat_type, custom_days } = reminder;
   if (repeat_type === 'daily') return true;
   if (repeat_type === 'once') return true;
@@ -71,6 +78,7 @@ export const TodayScreen: React.FC = () => {
   const todayCompletions = useCompletionStore((s) => s.todayCompletions);
   const streak = useCompletionStore((s) => s.streak);
   const [refreshing, setRefreshing] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const loadAll = useCallback(async () => {
     await Promise.all([
@@ -82,6 +90,7 @@ export const TodayScreen: React.FC = () => {
         .then((s) => useCompletionStore.getState().setStreak(s))
         .catch(() => {}),
     ]);
+    setInitialLoading(false);
   }, []);
 
   useFocusEffect(
@@ -204,6 +213,14 @@ export const TodayScreen: React.FC = () => {
 
   const now = new Date();
   const dateStr = `${WEEKDAY_NAMES[now.getDay()]}, ${MONTH_NAMES[now.getMonth()]} ${now.getDate()}`;
+
+  if (initialLoading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#4A90D9" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

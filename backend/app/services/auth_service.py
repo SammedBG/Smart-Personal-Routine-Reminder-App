@@ -31,6 +31,7 @@ class AuthService:
             email=data.email,
             full_name=data.full_name,
             password_hash=get_password_hash(data.password),
+            timezone=data.timezone,
         )
         await self.users.create(user)
         return user

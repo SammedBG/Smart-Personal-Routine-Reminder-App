@@ -5,17 +5,25 @@ import {
   ScrollView,
   StyleSheet,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { useCompletionStore } from '../../store/completionStore';
 import { fetchStreakInfo, DailyStats } from '../../api/completionApi';
 
-const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/** Derive short weekday label from a YYYY-MM-DD date string */
+function dayLabelFromDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  return WEEKDAY_SHORT[d.getDay()] || dateStr.slice(5);
+}
 
 export const AnalyticsScreen: React.FC = () => {
   const streak = useCompletionStore((s) => s.streak);
   const [refreshing, setRefreshing] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     try {
@@ -23,6 +31,8 @@ export const AnalyticsScreen: React.FC = () => {
       useCompletionStore.getState().setStreak(info);
     } catch {
       // silently fail
+    } finally {
+      setInitialLoading(false);
     }
   }, []);
 
@@ -39,6 +49,14 @@ export const AnalyticsScreen: React.FC = () => {
 
   const weeklyStats = streak?.weekly_stats || [];
   const maxTotal = Math.max(...weeklyStats.map((s) => s.total), 1);
+
+  if (initialLoading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#4A90D9" />
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -95,7 +113,7 @@ export const AnalyticsScreen: React.FC = () => {
             const bgHeight = day.total > 0
               ? Math.max((day.total / maxTotal) * 100, 4)
               : 4;
-            const dayLabel = WEEKDAY_LABELS[index] || day.date.slice(5);
+            const dayLabel = dayLabelFromDate(day.date);
             const isToday = index === weeklyStats.length - 1;
 
             return (

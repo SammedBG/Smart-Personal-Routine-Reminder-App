@@ -6,7 +6,7 @@ import { ActivityIndicator, View } from 'react-native';
 
 import { RootNavigator } from './navigation/RootNavigator';
 import { restoreSessionFromStorage } from './api/authApi';
-import { initialLoadReminders, syncFromServer } from './services/SyncService';
+import { initialLoadReminders, syncFromServer, startNetInfoListener } from './services/SyncService';
 import { ThemeProvider, useTheme } from './theme/ThemeContext';
 // Firebase is not configured yet – skip notification init to avoid native crash
 // import { initNotifications } from './services/NotificationService';
@@ -32,7 +32,9 @@ const AppInner = () => {
       } catch (e) {
         console.warn('Sync from server failed:', e);
       }
-      setBootstrapping(false);
+      // Start auto-sync listener for connectivity changes
+      startNetInfoListener();
+      setBootstrapping(false);", "oldString": "      try {\n        await syncFromServer();\n      } catch (e) {\n        console.warn('Sync from server failed:', e);\n      }\n      setBootstrapping(false);
     };
     void bootstrap();
   }, []);

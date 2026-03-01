@@ -145,6 +145,21 @@ export const ReminderEditScreen: React.FC = () => {
       return;
     }
 
+    // Validate date fields if provided
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (startDate.trim() && !dateRegex.test(startDate.trim())) {
+      Alert.alert('Validation', 'Start date must be in YYYY-MM-DD format');
+      return;
+    }
+    if (endDate.trim() && !dateRegex.test(endDate.trim())) {
+      Alert.alert('Validation', 'End date must be in YYYY-MM-DD format');
+      return;
+    }
+    if (startDate.trim() && endDate.trim() && startDate.trim() > endDate.trim()) {
+      Alert.alert('Validation', 'End date must be on or after start date');
+      return;
+    }
+
     setSaving(true);
     try {
       const payload: Record<string, unknown> = {

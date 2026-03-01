@@ -80,31 +80,46 @@ def _compute_next_trigger(reminder: Reminder, from_time: datetime) -> datetime |
     """Simple next trigger computation based on repeat_type and time_of_day."""
     base_date = from_time.date()
     time_of_day = reminder.time_of_day
-    next_dt = datetime.combine(base_date, time_of_day)
+
+    # Enforce end_date: if past end_date, no more triggers
+    if reminder.end_date and base_date > reminder.end_date:
+        return None
+
+    # Enforce start_date: don't trigger before start_date
+    effective_base = base_date
+    if reminder.start_date and effective_base < reminder.start_date:
+        effective_base = reminder.start_date
+
+    next_dt = datetime.combine(effective_base, time_of_day)
     if next_dt <= from_time:
         next_dt += timedelta(days=1)
+
+    def _in_bounds(dt: datetime) -> bool:
+        if reminder.start_date and dt.date() < reminder.start_date:
+            return False
+        if reminder.end_date and dt.date() > reminder.end_date:
+            return False
+        return True
 
     if reminder.repeat_type == RepeatType.ONCE:
         # Only trigger once; after firing, disable
         reminder.is_active = False
         return None
     elif reminder.repeat_type == RepeatType.DAILY:
-        return next_dt
+        return next_dt if _in_bounds(next_dt) else None
     elif reminder.repeat_type in (RepeatType.WEEKLY, RepeatType.CUSTOM):
-        # custom_days is stored as {"days": [0-6]} using JS convention (0=Sun)
         days = (reminder.custom_days or {}).get("days")
         if not days:
-            return next_dt
-        # Convert JS weekday (0=Sun) to Python weekday (0=Mon)
-        # JS: 0=Sun,1=Mon,...,6=Sat  →  Python: 0=Mon,...,5=Sat,6=Sun
+            return next_dt if _in_bounds(next_dt) else None
         python_days = [((d - 1) % 7) for d in days]
         for offset in range(0, 8):
             candidate = next_dt + timedelta(days=offset)
             if candidate.weekday() in python_days and candidate > from_time:
-                return candidate
+                if _in_bounds(candidate):
+                    return candidate
         return None
     else:
-        return next_dt
+        return next_dt if _in_bounds(next_dt) else None
 
 
 def create_scheduler() -> AsyncIOScheduler:
