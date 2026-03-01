@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import React, { useEffect, useRef, useState } from 'react';
+import { NavigationContainer, DefaultTheme, DarkTheme, NavigationContainerRef } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ActivityIndicator, View } from 'react-native';
@@ -8,12 +8,13 @@ import { RootNavigator } from './navigation/RootNavigator';
 import { restoreSessionFromStorage } from './api/authApi';
 import { initialLoadReminders, syncFromServer, startNetInfoListener } from './services/SyncService';
 import { ThemeProvider, useTheme } from './theme/ThemeContext';
-// Firebase is not configured yet – skip notification init to avoid native crash
-// import { initNotifications } from './services/NotificationService';
+import { initNotifications, rescheduleAllNotifications, setNotificationNavigationRef } from './services/NotificationService';
+import { useReminderStore } from './store/reminderStore';
 
 const AppInner = () => {
   const { isDark, colors } = useTheme();
   const [bootstrapping, setBootstrapping] = useState(true);
+  const navigationRef = useRef<NavigationContainerRef<any>>(null);
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -31,6 +32,19 @@ const AppInner = () => {
         await syncFromServer();
       } catch (e) {
         console.warn('Sync from server failed:', e);
+      }
+      // Schedule local notifications for all active reminders
+      try {
+        const reminders = useReminderStore.getState().reminders;
+        rescheduleAllNotifications(reminders);
+      } catch (e) {
+        console.warn('Notification scheduling failed:', e);
+      }
+      // Init push notifications (FCM may fail if not configured)
+      try {
+        await initNotifications();
+      } catch (e) {
+        console.warn('Notification init failed:', e);
       }
       // Start auto-sync listener for connectivity changes
       startNetInfoListener();
@@ -74,7 +88,10 @@ const AppInner = () => {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <NavigationContainer theme={navTheme}>
+        <NavigationContainer
+          ref={navigationRef}
+          theme={navTheme}
+          onReady={() => setNotificationNavigationRef(navigationRef.current)}>
           <RootNavigator />
         </NavigationContainer>
       </SafeAreaProvider>
