@@ -9,6 +9,7 @@ import {
   Switch,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 
 import { useAuthStore } from '../../store/authStore';
@@ -37,6 +38,7 @@ export const SettingsScreen: React.FC = () => {
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [loadingDevices, setLoadingDevices] = useState(false);
   const [showDevices, setShowDevices] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadDevices = useCallback(async () => {
     setLoadingDevices(true);
@@ -53,6 +55,15 @@ export const SettingsScreen: React.FC = () => {
   useEffect(() => {
     if (showDevices) {
       void loadDevices();
+    }
+  }, [showDevices, loadDevices]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      if (showDevices) await loadDevices();
+    } finally {
+      setRefreshing(false);
     }
   }, [showDevices, loadDevices]);
 
@@ -149,7 +160,11 @@ export const SettingsScreen: React.FC = () => {
   const borderColor = colors.border;
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: bg }]}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: bg }]}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }>
       {/* Profile Card */}
       <View style={[styles.profileCard, { backgroundColor: surfaceBg }]}>
         <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
