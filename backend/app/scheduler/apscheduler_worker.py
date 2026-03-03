@@ -109,14 +109,16 @@ async def mark_missed_completions() -> None:
         # Reminders that were triggered before the cutoff and have already
         # advanced their next_trigger_at (meaning the notification was sent).
         result = await session.execute(
-            select(Reminder).where(
+            select(Reminder)
+            .where(
                 and_(
                     Reminder.is_active.is_(True),
                     Reminder.deleted_at.is_(None),
                     Reminder.last_triggered_at.is_not(None),
                     Reminder.last_triggered_at <= cutoff,
                 )
-            ).limit(500)
+            )
+            .limit(500)
         )
         reminders = list(result.scalars().all())
         if not reminders:
@@ -128,7 +130,9 @@ async def mark_missed_completions() -> None:
             # Check if a completion record already exists for this
             # reminder + user + date (any status counts).
             existing = await session.execute(
-                select(func.count()).select_from(CompletionRecord).where(
+                select(func.count())
+                .select_from(CompletionRecord)
+                .where(
                     and_(
                         CompletionRecord.reminder_id == reminder.id,
                         CompletionRecord.user_id == reminder.user_id,
@@ -160,9 +164,7 @@ async def mark_missed_completions() -> None:
 def create_scheduler() -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler(timezone="UTC")
     scheduler.add_job(process_due_reminders, "interval", minutes=1, id="due-reminders")
-    scheduler.add_job(
-        mark_missed_completions, "interval", minutes=5, id="mark-missed"
-    )
+    scheduler.add_job(mark_missed_completions, "interval", minutes=5, id="mark-missed")
     return scheduler
 
 

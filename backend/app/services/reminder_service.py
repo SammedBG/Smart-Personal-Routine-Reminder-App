@@ -70,7 +70,9 @@ def compute_next_trigger(
             candidate_js = (js_today + offset) % 7
             if candidate_js in days:
                 candidate = datetime.combine(
-                    effective_today + timedelta(days=offset), time_of_day, tzinfo=timezone.utc
+                    effective_today + timedelta(days=offset),
+                    time_of_day,
+                    tzinfo=timezone.utc,
                 )
                 if _in_bounds(candidate):
                     return candidate

@@ -44,7 +44,9 @@ def create_app() -> FastAPI:
 
     # Global unhandled-exception handler
     @app.exception_handler(Exception)
-    async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    async def global_exception_handler(
+        request: Request, exc: Exception
+    ) -> JSONResponse:
         logger.exception("Unhandled error on {} {}", request.method, request.url.path)
         return JSONResponse(
             status_code=500,
