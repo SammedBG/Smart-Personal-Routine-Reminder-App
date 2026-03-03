@@ -94,7 +94,8 @@ jobs:
           cache: npm
           cache-dependency-path: mobile/package-lock.json
 
-      - run: npm ci
+      - name: Install dependencies
+        run: npm install --frozen-lockfile || npm install
 
       - name: Apply patches
         run: npx patch-package
@@ -120,7 +121,8 @@ jobs:
           cache: npm
           cache-dependency-path: mobile/package-lock.json
 
-      - run: npm ci
+      - name: Install dependencies
+        run: npm install --frozen-lockfile || npm install
       - run: npx patch-package
 
       - name: Run tests
@@ -147,7 +149,8 @@ jobs:
           java-version: "17"
           cache: gradle
 
-      - run: npm ci
+      - name: Install dependencies
+        run: npm install --frozen-lockfile || npm install
       - run: npx patch-package
 
       # Provide a dummy google-services.json so Gradle doesn't fail
