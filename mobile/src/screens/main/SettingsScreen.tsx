@@ -293,6 +293,7 @@ export const SettingsScreen: React.FC = () => {
             value={isDark}
             onValueChange={toggle}
             trackColor={{ false: colors.border, true: colors.primary }}
+            accessibilityLabel="Toggle dark mode"
           />
         </View>
       </View>
@@ -352,7 +353,9 @@ export const SettingsScreen: React.FC = () => {
       {/* Actions */}
       <TouchableOpacity
         style={[styles.logoutBtn, { borderColor: colors.danger }]}
-        onPress={handleLogout}>
+        onPress={handleLogout}
+        accessibilityLabel="Logout"
+        accessibilityRole="button">
         <Text style={[styles.logoutText, { color: colors.danger }]}>
           Logout
         </Text>
@@ -360,7 +363,9 @@ export const SettingsScreen: React.FC = () => {
 
       <TouchableOpacity
         style={styles.deleteAccountBtn}
-        onPress={handleDeleteAccount}>
+        onPress={handleDeleteAccount}
+        accessibilityLabel="Delete account"
+        accessibilityRole="button">
         <Text style={[styles.deleteAccountText, { color: colors.textTertiary }]}>Delete Account</Text>
       </TouchableOpacity>
     </ScrollView>

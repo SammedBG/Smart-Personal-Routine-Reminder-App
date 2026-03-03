@@ -2,11 +2,12 @@ from datetime import datetime, timedelta, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from loguru import logger
-from sqlalchemy import and_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.asyncio.session import async_sessionmaker
 
 from backend.app.config import get_settings
+from backend.app.models.completion import CompletionRecord, CompletionStatus
 from backend.app.models.device import Device
 from backend.app.models.reminder import Reminder, RepeatType
 from backend.app.notifications.fcm import send_notification_to_devices
@@ -94,9 +95,74 @@ async def _notify_for_reminder(
     session.add(reminder)
 
 
+# Grace period (minutes) after a reminder's trigger time before marking as missed
+MISSED_GRACE_MINUTES = 30
+
+
+async def mark_missed_completions() -> None:
+    """Create 'missed' completion records for reminders that were triggered
+    but received no user action within the grace period."""
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(minutes=MISSED_GRACE_MINUTES)
+
+    async with SessionLocal() as session:
+        # Reminders that were triggered before the cutoff and have already
+        # advanced their next_trigger_at (meaning the notification was sent).
+        result = await session.execute(
+            select(Reminder).where(
+                and_(
+                    Reminder.is_active.is_(True),
+                    Reminder.deleted_at.is_(None),
+                    Reminder.last_triggered_at.is_not(None),
+                    Reminder.last_triggered_at <= cutoff,
+                )
+            ).limit(500)
+        )
+        reminders = list(result.scalars().all())
+        if not reminders:
+            return
+
+        for reminder in reminders:
+            date_key = reminder.last_triggered_at.strftime("%Y-%m-%d")
+
+            # Check if a completion record already exists for this
+            # reminder + user + date (any status counts).
+            existing = await session.execute(
+                select(func.count()).select_from(CompletionRecord).where(
+                    and_(
+                        CompletionRecord.reminder_id == reminder.id,
+                        CompletionRecord.user_id == reminder.user_id,
+                        CompletionRecord.date_key == date_key,
+                    )
+                )
+            )
+            if existing.scalar_one() > 0:
+                continue
+
+            record = CompletionRecord(
+                reminder_id=reminder.id,
+                user_id=reminder.user_id,
+                scheduled_at=reminder.last_triggered_at,
+                completed_at=now,
+                status=CompletionStatus.MISSED,
+                date_key=date_key,
+            )
+            session.add(record)
+            logger.info(
+                "Marked reminder {} as missed for {}",
+                reminder.id,
+                date_key,
+            )
+
+        await session.commit()
+
+
 def create_scheduler() -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler(timezone="UTC")
     scheduler.add_job(process_due_reminders, "interval", minutes=1, id="due-reminders")
+    scheduler.add_job(
+        mark_missed_completions, "interval", minutes=5, id="mark-missed"
+    )
     return scheduler
 
 
