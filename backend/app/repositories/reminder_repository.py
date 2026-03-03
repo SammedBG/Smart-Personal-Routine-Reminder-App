@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
 
@@ -17,8 +17,12 @@ class ReminderRepository:
             Reminder.user_id == user_id, Reminder.deleted_at.is_(None)
         )
 
-    async def list_for_user(self, user_id: UUID) -> List[Reminder]:
-        result = await self.db.execute(self._base_query(user_id))
+    async def list_for_user(
+        self, user_id: UUID, skip: int = 0, limit: int = 50
+    ) -> List[Reminder]:
+        result = await self.db.execute(
+            self._base_query(user_id).offset(skip).limit(limit)
+        )
         return list(result.scalars().all())
 
     async def get_for_user(
@@ -40,7 +44,7 @@ class ReminderRepository:
         return reminder
 
     async def soft_delete(self, reminder: Reminder) -> None:
-        reminder.deleted_at = datetime.utcnow()
+        reminder.deleted_at = datetime.now(timezone.utc)
         self.db.add(reminder)
         await self.db.flush()
 

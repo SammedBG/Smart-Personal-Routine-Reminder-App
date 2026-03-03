@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.db.base import Base, TimestampMixin
@@ -50,3 +50,7 @@ class CompletionRecord(TimestampMixin, Base):
     )  # YYYY-MM-DD
 
     reminder: Mapped["Reminder"] = relationship("Reminder")
+
+    __table_args__ = (
+        Index("ix_completion_user_reminder_date", "user_id", "reminder_id", "date_key"),
+    )

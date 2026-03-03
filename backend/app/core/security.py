@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 import bcrypt
@@ -26,7 +26,7 @@ def _create_token(
     extra_claims: Optional[dict] = None,
 ) -> str:
     settings = get_settings()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     payload: dict[str, Any] = {
         "sub": subject,
         "iat": now,

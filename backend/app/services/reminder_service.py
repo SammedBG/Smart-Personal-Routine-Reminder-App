@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,7 +16,7 @@ def compute_next_trigger(
     end_date: date | None = None,
 ) -> datetime | None:
     """Compute the next trigger datetime based on the reminder schedule."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     today = now.date()
 
     # If end_date is in the past, no more triggers
@@ -86,8 +86,8 @@ class ReminderService:
         self.db = db
         self.repo = ReminderRepository(db)
 
-    async def list_reminders(self, user_id: UUID):
-        return await self.repo.list_for_user(user_id)
+    async def list_reminders(self, user_id: UUID, skip: int = 0, limit: int = 50):
+        return await self.repo.list_for_user(user_id, skip=skip, limit=limit)
 
     async def get_reminder(self, user_id: UUID, reminder_id: UUID) -> Reminder | None:
         return await self.repo.get_for_user(user_id, reminder_id)
@@ -133,7 +133,7 @@ class ReminderService:
             else:
                 setattr(reminder, field, value)
         reminder.version += 1
-        reminder.updated_at = datetime.utcnow()
+        reminder.updated_at = datetime.now(timezone.utc)
 
         # Recompute next_trigger_at if schedule-related fields changed
         reminder.next_trigger_at = compute_next_trigger(

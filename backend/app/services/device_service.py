@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
 
@@ -25,7 +25,7 @@ class DeviceService:
                 fcm_token=data.fcm_token,
                 platform=platform.value,
                 app_version=data.app_version,
-                last_seen_at=datetime.utcnow(),
+                last_seen_at=datetime.now(timezone.utc),
                 is_active=True,
             )
             await self.repo.create(device)
@@ -33,7 +33,7 @@ class DeviceService:
             device.fcm_token = data.fcm_token
             device.platform = platform.value
             device.app_version = data.app_version
-            device.last_seen_at = datetime.utcnow()
+            device.last_seen_at = datetime.now(timezone.utc)
             device.is_active = True
             await self.repo.save(device)
 

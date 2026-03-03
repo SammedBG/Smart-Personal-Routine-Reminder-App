@@ -11,6 +11,11 @@ services:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_user -d smart_routines"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   api:
     build:
@@ -18,10 +23,16 @@ services:
       dockerfile: backend/Dockerfile
     env_file:
       - backend/.env
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://app_user:app_password@db:5432/smart_routines"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "8000:8000"
+    command: >
+      sh -c "alembic -c backend/alembic.ini upgrade head &&
+             uvicorn backend.app.main:app --host 0.0.0.0 --port 8000"
 
   scheduler:
     build:
@@ -29,9 +40,12 @@ services:
       dockerfile: backend/Dockerfile
     env_file:
       - backend/.env
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://app_user:app_password@db:5432/smart_routines"
     command: ["python", "-m", "backend.app.scheduler.apscheduler_worker"]
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   db_data:
