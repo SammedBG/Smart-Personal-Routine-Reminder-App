@@ -1,12 +1,17 @@
+from __future__ import annotations
+
 import enum
 import uuid
-from datetime import datetime, date, time
-from typing import Optional
+from datetime import date, datetime, time
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import JSON, Boolean, Date, DateTime, Enum, ForeignKey, Integer, String, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.db.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from backend.app.models.user import User
 
 
 class ReminderType(str, enum.Enum):

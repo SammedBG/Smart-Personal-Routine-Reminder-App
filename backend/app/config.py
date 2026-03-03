@@ -2,7 +2,7 @@ import os
 from functools import lru_cache
 from typing import List, Optional
 
-from pydantic import AnyHttpUrl, BaseSettings, Field, validator
+from pydantic import AnyHttpUrl, BaseSettings, Field
 
 # Load .env from backend/ when running from project root
 _BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
