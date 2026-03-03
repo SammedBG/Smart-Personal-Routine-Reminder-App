@@ -37,4 +37,3 @@ class User(TimestampMixin, Base):
     devices: Mapped[List["Device"]] = relationship(
         "Device", back_populates="user", cascade="all, delete-orphan"
     )
-

@@ -28,7 +28,9 @@ class Settings(BaseSettings):
 
     # JWT
     jwt_secret_key: str = Field("CHANGE_ME", env="JWT_SECRET_KEY")
-    jwt_refresh_secret_key: str = Field("CHANGE_ME_REFRESH", env="JWT_REFRESH_SECRET_KEY")
+    jwt_refresh_secret_key: str = Field(
+        "CHANGE_ME_REFRESH", env="JWT_REFRESH_SECRET_KEY"
+    )
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
@@ -50,4 +52,3 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
-

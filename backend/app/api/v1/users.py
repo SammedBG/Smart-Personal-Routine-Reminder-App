@@ -54,4 +54,3 @@ async def delete_account(
     await db.delete(current_user)
     await db.flush()
     return {"message": "Account deleted"}
-

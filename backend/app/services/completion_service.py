@@ -91,7 +91,9 @@ class CompletionService:
             day_records = by_date.get(dk, [])
             total = len(day_records)
             done = sum(1 for r in day_records if r.status == CompletionStatus.DONE)
-            skipped = sum(1 for r in day_records if r.status == CompletionStatus.SKIPPED)
+            skipped = sum(
+                1 for r in day_records if r.status == CompletionStatus.SKIPPED
+            )
             missed = sum(1 for r in day_records if r.status == CompletionStatus.MISSED)
             rate = done / total if total > 0 else 0.0
             weekly_stats.append(

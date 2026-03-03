@@ -59,4 +59,3 @@ class AuthService:
     async def revoke_tokens(self, user: User) -> None:
         user.token_version += 1
         await self.users.save(user)
-

@@ -14,9 +14,7 @@ reusable_oauth2 = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
-    credentials: Annotated[
-        HTTPAuthorizationCredentials, Security(reusable_oauth2)
-    ],
+    credentials: Annotated[HTTPAuthorizationCredentials, Security(reusable_oauth2)],
     db: AsyncSession = Depends(get_db),
 ) -> User:
     if credentials is None or credentials.scheme.lower() != "bearer":
@@ -54,4 +52,3 @@ async def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
-

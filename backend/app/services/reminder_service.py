@@ -37,17 +37,23 @@ def compute_next_trigger(
         return True
 
     if repeat_type == "daily":
-        candidate = trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
+        candidate = (
+            trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
+        )
         return candidate if _in_bounds(candidate) else None
 
     if repeat_type == "once":
-        candidate = trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
+        candidate = (
+            trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
+        )
         return candidate if _in_bounds(candidate) else None
 
     if repeat_type in ("weekly", "custom") and custom_days:
         days = custom_days.get("days", [])
         if not days:
-            candidate = trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
+            candidate = (
+                trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
+            )
             return candidate if _in_bounds(candidate) else None
 
         # days list uses: 0=Sun,1=Mon,...,6=Sat  (JS convention)
@@ -63,7 +69,9 @@ def compute_next_trigger(
         for offset in range(1, 8):
             candidate_js = (js_today + offset) % 7
             if candidate_js in days:
-                candidate = datetime.combine(effective_today + timedelta(days=offset), time_of_day)
+                candidate = datetime.combine(
+                    effective_today + timedelta(days=offset), time_of_day
+                )
                 if _in_bounds(candidate):
                     return candidate
         return None
@@ -86,8 +94,11 @@ class ReminderService:
 
     async def create_reminder(self, user_id: UUID, data: ReminderCreate) -> Reminder:
         next_trigger = compute_next_trigger(
-            data.time_of_day, data.repeat_type.value, data.custom_days,
-            start_date=data.start_date, end_date=data.end_date,
+            data.time_of_day,
+            data.repeat_type.value,
+            data.custom_days,
+            start_date=data.start_date,
+            end_date=data.end_date,
         )
         reminder = Reminder(
             user_id=user_id,
@@ -101,8 +112,12 @@ class ReminderService:
             next_trigger_at=next_trigger,
             start_date=data.start_date,
             end_date=data.end_date,
-            medicine_details=data.medicine_details.dict() if data.medicine_details else None,
-            exercise_details=data.exercise_details.dict() if data.exercise_details else None,
+            medicine_details=data.medicine_details.dict()
+            if data.medicine_details
+            else None,
+            exercise_details=data.exercise_details.dict()
+            if data.exercise_details
+            else None,
         )
         await self.repo.create(reminder)
         return reminder
@@ -139,4 +154,3 @@ class ReminderService:
 
     async def list_changed_since(self, user_id: UUID, since: datetime | None):
         return await self.repo.list_changed_since(user_id, since)
-

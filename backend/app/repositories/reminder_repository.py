@@ -21,7 +21,9 @@ class ReminderRepository:
         result = await self.db.execute(self._base_query(user_id))
         return list(result.scalars().all())
 
-    async def get_for_user(self, user_id: UUID, reminder_id: UUID) -> Optional[Reminder]:
+    async def get_for_user(
+        self, user_id: UUID, reminder_id: UUID
+    ) -> Optional[Reminder]:
         result = await self.db.execute(
             self._base_query(user_id).where(Reminder.id == reminder_id)
         )
@@ -51,4 +53,3 @@ class ReminderRepository:
             query = query.where(Reminder.updated_at >= since)
         result = await self.db.execute(query)
         return list(result.scalars().all())
-

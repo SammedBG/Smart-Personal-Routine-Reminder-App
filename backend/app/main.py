@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.config import get_settings
+
 # Import models so SQLAlchemy metadata is populated (for migrations and ORM)
 from backend.app.models import completion, device, reminder, user  # noqa: F401
 from backend.app.api.v1 import auth, completions, devices, health, reminders, users
@@ -9,7 +10,6 @@ from backend.app.api.v1 import auth, completions, devices, health, reminders, us
 
 def create_app() -> FastAPI:
     settings = get_settings()
-
 
     app = FastAPI(
         title=settings.project_name,
@@ -41,4 +41,3 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-

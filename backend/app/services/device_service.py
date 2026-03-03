@@ -14,9 +14,7 @@ class DeviceService:
         self.db = db
         self.repo = DeviceRepository(db)
 
-    async def register_or_update(
-        self, user_id: UUID, data: DeviceRegister
-    ) -> Device:
+    async def register_or_update(self, user_id: UUID, data: DeviceRegister) -> Device:
         device = await self.repo.get_by_user_and_device_id(user_id, data.device_id)
         platform = Platform.ANDROID if data.platform == "android" else Platform.IOS
 
@@ -51,4 +49,3 @@ class DeviceService:
         device.is_active = False
         await self.repo.save(device)
         return device
-

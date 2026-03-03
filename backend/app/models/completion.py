@@ -32,7 +32,9 @@ class CompletionRecord(TimestampMixin, Base):
         String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
 
-    scheduled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    scheduled_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
     status: Mapped[CompletionStatus] = mapped_column(

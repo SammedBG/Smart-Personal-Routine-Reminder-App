@@ -89,4 +89,3 @@ def decode_token(token: str, token_type: str) -> dict:
             detail="Invalid token type",
         )
     return payload
-

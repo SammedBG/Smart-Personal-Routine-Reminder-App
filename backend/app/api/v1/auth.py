@@ -60,4 +60,3 @@ async def logout(current_user: CurrentUser, db: AsyncSession = Depends(get_db)) 
     service = AuthService(db)
     await service.revoke_tokens(current_user)
     return {"detail": "Logged out"}
-

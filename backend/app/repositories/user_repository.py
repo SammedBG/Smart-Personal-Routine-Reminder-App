@@ -28,4 +28,3 @@ class UserRepository:
         self.db.add(user)
         await self.db.flush()
         return user
-

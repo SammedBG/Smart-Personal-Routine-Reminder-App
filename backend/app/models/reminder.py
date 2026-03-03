@@ -5,7 +5,17 @@ import uuid
 from datetime import date, datetime, time
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import JSON, Boolean, Date, DateTime, Enum, ForeignKey, Integer, String, Time
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Date,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    Time,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.db.base import Base, TimestampMixin
@@ -81,4 +91,3 @@ class Reminder(TimestampMixin, Base):
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
     user: Mapped["User"] = relationship("User", back_populates="reminders")
-

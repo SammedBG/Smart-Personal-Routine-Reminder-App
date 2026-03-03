@@ -41,4 +41,3 @@ class Device(TimestampMixin, Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     user: Mapped["User"] = relationship("User", back_populates="devices")
-
