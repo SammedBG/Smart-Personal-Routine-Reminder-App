@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,6 +21,19 @@ class CompletionService:
     async def record_completion(
         self, user_id: str, data: CompletionCreate
     ) -> CompletionRecord:
+        # Verify the reminder belongs to this user
+        from backend.app.repositories.reminder_repository import ReminderRepository
+
+        reminder_repo = ReminderRepository(self.db)
+        reminder = await reminder_repo.get_for_user(user_id, data.reminder_id)
+        if not reminder:
+            from fastapi import HTTPException, status
+
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Reminder not found or does not belong to this user",
+            )
+
         date_key = data.scheduled_at.strftime("%Y-%m-%d")
 
         # Check for existing record for this reminder on this date
@@ -31,7 +44,7 @@ class CompletionService:
             # Update existing record
             existing.status = data.status
             existing.completed_at = (
-                datetime.utcnow()
+                datetime.now(timezone.utc)
                 if data.status in (CompletionStatus.DONE, CompletionStatus.SKIPPED)
                 else None
             )
@@ -45,7 +58,7 @@ class CompletionService:
             user_id=user_id,
             scheduled_at=data.scheduled_at,
             completed_at=(
-                datetime.utcnow()
+                datetime.now(timezone.utc)
                 if data.status in (CompletionStatus.DONE, CompletionStatus.SKIPPED)
                 else None
             ),
@@ -91,7 +104,9 @@ class CompletionService:
             day_records = by_date.get(dk, [])
             total = len(day_records)
             done = sum(1 for r in day_records if r.status == CompletionStatus.DONE)
-            skipped = sum(1 for r in day_records if r.status == CompletionStatus.SKIPPED)
+            skipped = sum(
+                1 for r in day_records if r.status == CompletionStatus.SKIPPED
+            )
             missed = sum(1 for r in day_records if r.status == CompletionStatus.MISSED)
             rate = done / total if total > 0 else 0.0
             weekly_stats.append(

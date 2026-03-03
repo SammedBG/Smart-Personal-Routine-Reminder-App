@@ -123,7 +123,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const value = useMemo(
     () => ({ mode, isDark, colors, setMode, toggle }),
-    [mode, isDark, colors, toggle],
+    [mode, isDark, colors, setMode, toggle],
   );
 
   return (

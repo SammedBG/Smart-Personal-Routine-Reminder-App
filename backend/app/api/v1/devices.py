@@ -45,4 +45,3 @@ async def remove_device(
         raise HTTPException(status_code=404, detail="Device not found")
     await service.deactivate(device)
     return {"detail": "Device removed"}
-

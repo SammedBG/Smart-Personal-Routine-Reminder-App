@@ -37,4 +37,3 @@ class DeviceRepository:
         self.db.add(device)
         await self.db.flush()
         return device
-

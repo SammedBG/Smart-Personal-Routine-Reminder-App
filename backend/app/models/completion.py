@@ -1,12 +1,15 @@
 import enum
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.db.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from backend.app.models.reminder import Reminder
 
 
 class CompletionStatus(str, enum.Enum):
@@ -29,7 +32,9 @@ class CompletionRecord(TimestampMixin, Base):
         String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
 
-    scheduled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    scheduled_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
     status: Mapped[CompletionStatus] = mapped_column(
@@ -45,3 +50,7 @@ class CompletionRecord(TimestampMixin, Base):
     )  # YYYY-MM-DD
 
     reminder: Mapped["Reminder"] = relationship("Reminder")
+
+    __table_args__ = (
+        Index("ix_completion_user_reminder_date", "user_id", "reminder_id", "date_key"),
+    )

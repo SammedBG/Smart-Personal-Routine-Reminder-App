@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
 
@@ -14,9 +14,7 @@ class DeviceService:
         self.db = db
         self.repo = DeviceRepository(db)
 
-    async def register_or_update(
-        self, user_id: UUID, data: DeviceRegister
-    ) -> Device:
+    async def register_or_update(self, user_id: UUID, data: DeviceRegister) -> Device:
         device = await self.repo.get_by_user_and_device_id(user_id, data.device_id)
         platform = Platform.ANDROID if data.platform == "android" else Platform.IOS
 
@@ -27,7 +25,7 @@ class DeviceService:
                 fcm_token=data.fcm_token,
                 platform=platform.value,
                 app_version=data.app_version,
-                last_seen_at=datetime.utcnow(),
+                last_seen_at=datetime.now(timezone.utc),
                 is_active=True,
             )
             await self.repo.create(device)
@@ -35,7 +33,7 @@ class DeviceService:
             device.fcm_token = data.fcm_token
             device.platform = platform.value
             device.app_version = data.app_version
-            device.last_seen_at = datetime.utcnow()
+            device.last_seen_at = datetime.now(timezone.utc)
             device.is_active = True
             await self.repo.save(device)
 
@@ -51,4 +49,3 @@ class DeviceService:
         device.is_active = False
         await self.repo.save(device)
         return device
-

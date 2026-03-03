@@ -50,37 +50,47 @@ async function removePendingChange(id: number): Promise<void> {
   await db.executeSql('DELETE FROM pending_changes WHERE id = ?', [id]);
 }
 
+/** Flush lock to prevent concurrent flushes (race condition guard) */
+let isFlushing = false;
+
 /** Flush all pending changes to the server. Returns count of successfully flushed items. */
 export async function flushPendingChanges(): Promise<number> {
-  const netState = await NetInfo.fetch();
-  if (!netState.isConnected) return 0;
+  if (isFlushing) return 0;
+  isFlushing = true;
 
-  const changes = await loadPendingChanges();
-  let flushed = 0;
+  try {
+    const netState = await NetInfo.fetch();
+    if (!netState.isConnected) return 0;
 
-  for (const change of changes) {
-    try {
-      const payload: QueuePayload = JSON.parse(change.payload);
-      switch (payload.method) {
-        case 'post':
-          await apiClient.post(payload.endpoint, payload.data || null);
-          break;
-        case 'patch':
-          await apiClient.patch(payload.endpoint, payload.data || null);
-          break;
-        case 'delete':
-          await apiClient.delete(payload.endpoint);
-          break;
+    const changes = await loadPendingChanges();
+    let flushed = 0;
+
+    for (const change of changes) {
+      try {
+        const payload: QueuePayload = JSON.parse(change.payload);
+        switch (payload.method) {
+          case 'post':
+            await apiClient.post(payload.endpoint, payload.data || null);
+            break;
+          case 'patch':
+            await apiClient.patch(payload.endpoint, payload.data || null);
+            break;
+          case 'delete':
+            await apiClient.delete(payload.endpoint);
+            break;
+        }
+        await removePendingChange(change.id);
+        flushed++;
+      } catch {
+        // Stop on first failure — preserve ordering
+        break;
       }
-      await removePendingChange(change.id);
-      flushed++;
-    } catch {
-      // Stop on first failure — preserve ordering
-      break;
     }
-  }
 
-  return flushed;
+    return flushed;
+  } finally {
+    isFlushing = false;
+  }
 }
 
 /** Get the count of pending changes waiting to sync */

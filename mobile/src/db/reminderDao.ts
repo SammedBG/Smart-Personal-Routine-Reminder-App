@@ -1,5 +1,6 @@
 import { Reminder } from '../store/reminderStore';
 import { getDatabase } from './database';
+import type { Transaction } from 'react-native-sqlite-storage';
 
 export async function loadAllRemindersFromDb(): Promise<Reminder[]> {
   const db = await getDatabase();
@@ -38,7 +39,7 @@ export async function deleteReminderFromDb(id: string): Promise<void> {
 export async function upsertRemindersInDb(reminders: Reminder[]): Promise<void> {
   if (!reminders.length) return;
   const db = await getDatabase();
-  await db.transaction(async (tx) => {
+  await db.transaction(async (tx: Transaction) => {
     reminders.forEach((r) => {
       tx.executeSql(
         `INSERT OR REPLACE INTO reminders

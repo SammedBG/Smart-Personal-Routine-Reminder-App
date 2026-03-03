@@ -49,8 +49,11 @@ def send_notification_to_devices(
     try:
         response = messaging.send_multicast(message)
         logger.info(
-            "Sent FCM notifications", extra={"success": response.success_count, "failure": response.failure_count}
+            "Sent FCM notifications",
+            extra={
+                "success": response.success_count,
+                "failure": response.failure_count,
+            },
         )
     except Exception as exc:  # noqa: BLE001
         logger.exception(f"Error sending FCM notifications: {exc}")
-

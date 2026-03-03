@@ -22,6 +22,7 @@ engine = create_async_engine(
 
 # Enable WAL mode and foreign keys for SQLite
 if settings.database_url.startswith("sqlite"):
+
     @event.listens_for(engine.sync_engine, "connect")
     def _set_sqlite_pragma(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
@@ -47,4 +48,3 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         except Exception:
             await session.rollback()
             raise
-

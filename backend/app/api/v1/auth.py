@@ -1,19 +1,30 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core.dependencies import CurrentUser
 from backend.app.core.security import decode_token
 from backend.app.db.session import get_db
-from backend.app.schemas.user import TokenPair, UserCreate, UserLogin, UserRead
+from backend.app.schemas.user import (
+    RefreshTokenRequest,
+    TokenPair,
+    UserCreate,
+    UserLogin,
+    UserRead,
+)
 from backend.app.services.auth_service import AuthService
+
+limiter = Limiter(key_func=get_remote_address)
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=UserRead, summary="Register a new user")
+@limiter.limit("5/minute")
 async def register_user(
-    data: UserCreate, db: AsyncSession = Depends(get_db)
+    request: Request, data: UserCreate, db: AsyncSession = Depends(get_db)
 ) -> UserRead:
     service = AuthService(db)
     user = await service.register(data)
@@ -21,7 +32,10 @@ async def register_user(
 
 
 @router.post("/login", response_model=TokenPair, summary="Login and obtain tokens")
-async def login(data: UserLogin, db: AsyncSession = Depends(get_db)) -> TokenPair:
+@limiter.limit("5/minute")
+async def login(
+    request: Request, data: UserLogin, db: AsyncSession = Depends(get_db)
+) -> TokenPair:
     service = AuthService(db)
     return await service.login(data)
 
@@ -29,10 +43,11 @@ async def login(data: UserLogin, db: AsyncSession = Depends(get_db)) -> TokenPai
 @router.post(
     "/refresh", response_model=TokenPair, summary="Refresh access and refresh tokens"
 )
+@limiter.limit("10/minute")
 async def refresh_tokens(
-    refresh_token: str, db: AsyncSession = Depends(get_db)
+    request: Request, data: RefreshTokenRequest, db: AsyncSession = Depends(get_db)
 ) -> TokenPair:
-    payload = decode_token(refresh_token, token_type="refresh")
+    payload = decode_token(data.refresh_token, token_type="refresh")
     user_id = payload.get("sub")
     token_version = payload.get("tv", 0)
 
@@ -60,4 +75,3 @@ async def logout(current_user: CurrentUser, db: AsyncSession = Depends(get_db)) 
     service = AuthService(db)
     await service.revoke_tokens(current_user)
     return {"detail": "Logged out"}
-

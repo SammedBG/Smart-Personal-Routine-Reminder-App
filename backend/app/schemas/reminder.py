@@ -71,4 +71,3 @@ class ReminderSyncPayload(BaseModel):
 class ReminderSyncResponse(BaseModel):
     reminders: List[ReminderRead]
     last_sync_at: datetime
-

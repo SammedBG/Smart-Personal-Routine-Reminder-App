@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,6 +31,7 @@ class AuthService:
             email=data.email,
             full_name=data.full_name,
             password_hash=get_password_hash(data.password),
+            timezone=data.timezone,
         )
         await self.users.create(user)
         return user
@@ -43,7 +44,7 @@ class AuthService:
                 detail="Incorrect email or password",
             )
 
-        user.last_login_at = datetime.utcnow()
+        user.last_login_at = datetime.now(timezone.utc)
         await self.users.save(user)
 
         access = create_access_token(str(user.id), user.token_version)
@@ -58,4 +59,3 @@ class AuthService:
     async def revoke_tokens(self, user: User) -> None:
         user.token_version += 1
         await self.users.save(user)
-

@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from backend.app.config import get_settings
 from backend.app.db.base import Base  # noqa: F401
 # Import models so Base.metadata has all tables
-from backend.app.models import device, reminder, user  # noqa: F401
+from backend.app.models import completion, device, reminder, user  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

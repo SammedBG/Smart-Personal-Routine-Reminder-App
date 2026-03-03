@@ -1,11 +1,17 @@
+from __future__ import annotations
+
 import uuid
 from datetime import datetime
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.db.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from backend.app.models.device import Device
+    from backend.app.models.reminder import Reminder
 
 
 class User(TimestampMixin, Base):
@@ -31,4 +37,3 @@ class User(TimestampMixin, Base):
     devices: Mapped[List["Device"]] = relationship(
         "Device", back_populates="user", cascade="all, delete-orphan"
     )
-

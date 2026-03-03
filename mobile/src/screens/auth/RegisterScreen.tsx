@@ -1,14 +1,25 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
 
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { register } from '../../api/authApi';
+import { useTheme } from '../../theme/ThemeContext';
 import type { AuthStackParamList } from '../../navigation/auth/AuthStack';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 
 export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
+  const { colors } = useTheme();
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
@@ -40,48 +51,67 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Create Account</Text>
-      {error && <Text style={styles.error}>{error}</Text>}
-      <TextInput
-        style={styles.input}
-        placeholder="Full name"
-        value={fullName}
-        onChangeText={setFullName}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-      <Button
-        title={loading ? 'Creating account...' : 'Register'}
-        onPress={handleRegister}
-        disabled={loading}
-      />
-      <View style={styles.footer}>
-        <Text>Already have an account?</Text>
-        <Text style={styles.link} onPress={() => navigation.goBack()}>
-          Login
-        </Text>
-      </View>
-    </View>
+    <KeyboardAvoidingView
+      style={[styles.flex, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled">
+        <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
+        {error && <Text style={styles.error}>{error}</Text>}
+        <TextInput
+          style={[styles.input, { borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBg }]}
+          placeholder="Full name"
+          placeholderTextColor={colors.textSecondary}
+          value={fullName}
+          onChangeText={setFullName}
+          accessibilityLabel="Full name"
+        />
+        <TextInput
+          style={[styles.input, { borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBg }]}
+          placeholder="Email"
+          placeholderTextColor={colors.textSecondary}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+          accessibilityLabel="Email address"
+        />
+        <TextInput
+          style={[styles.input, { borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBg }]}
+          placeholder="Password"
+          placeholderTextColor={colors.textSecondary}
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+          accessibilityLabel="Password"
+        />
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: colors.primary }, loading && { opacity: 0.6 }]}
+          onPress={handleRegister}
+          disabled={loading}
+          accessibilityRole="button"
+          accessibilityLabel={loading ? 'Creating account' : 'Register'}>
+          <Text style={styles.buttonText}>{loading ? 'Creating account...' : 'Register'}</Text>
+        </TouchableOpacity>
+        <View style={styles.footer}>
+          <Text style={{ color: colors.textSecondary }}>Already have an account?</Text>
+          <Text
+            style={[styles.link, { color: colors.primary }]}
+            onPress={() => navigation.goBack()}
+            accessibilityRole="link">
+            Login
+          </Text>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   container: {
-    flex: 1,
+    flexGrow: 1,
     padding: 24,
     justifyContent: 'center',
   },
@@ -93,16 +123,26 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 12,
   },
   error: {
-    color: 'red',
+    color: '#d9534f',
     marginBottom: 8,
     textAlign: 'center',
+  },
+  button: {
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   footer: {
     marginTop: 16,
@@ -111,7 +151,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   link: {
-    color: '#007bff',
+    fontWeight: '600',
   },
 });
 

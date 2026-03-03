@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
 
@@ -23,9 +23,11 @@ router = APIRouter(prefix="/reminders", tags=["reminders"])
 async def list_reminders(
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
+    skip: int = Query(default=0, ge=0, description="Number of records to skip"),
+    limit: int = Query(default=50, ge=1, le=200, description="Max records to return"),
 ) -> List[ReminderRead]:
     service = ReminderService(db)
-    reminders = await service.list_reminders(current_user.id)
+    reminders = await service.list_reminders(current_user.id, skip=skip, limit=limit)
     return [ReminderRead.from_orm(r) for r in reminders]
 
 
@@ -48,7 +50,7 @@ async def sync_reminders(
 ) -> ReminderSyncResponse:
     service = ReminderService(db)
     reminders = await service.list_changed_since(current_user.id, since)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     return ReminderSyncResponse(
         reminders=[ReminderRead.from_orm(r) for r in reminders],
         last_sync_at=now,

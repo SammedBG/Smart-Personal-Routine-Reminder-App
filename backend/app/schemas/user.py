@@ -10,7 +10,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(..., min_length=8)
     timezone: str = "UTC"
 
 
@@ -46,3 +46,6 @@ class TokenPair(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
 
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str

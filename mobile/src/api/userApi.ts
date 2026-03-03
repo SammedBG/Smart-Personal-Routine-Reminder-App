@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import { useAuthStore } from '../store/authStore';
+import { clearTokens } from '../services/SecureStorage';
 
 type UserProfile = {
   id: string;
@@ -33,4 +34,5 @@ export async function changePassword(
 export async function deleteAccount(): Promise<void> {
   await apiClient.delete('/users/me');
   useAuthStore.getState().clearSession();
+  await clearTokens();
 }

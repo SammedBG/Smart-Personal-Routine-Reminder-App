@@ -9,6 +9,7 @@ import {
   Switch,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 
 import { useAuthStore } from '../../store/authStore';
@@ -37,6 +38,7 @@ export const SettingsScreen: React.FC = () => {
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [loadingDevices, setLoadingDevices] = useState(false);
   const [showDevices, setShowDevices] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadDevices = useCallback(async () => {
     setLoadingDevices(true);
@@ -53,6 +55,15 @@ export const SettingsScreen: React.FC = () => {
   useEffect(() => {
     if (showDevices) {
       void loadDevices();
+    }
+  }, [showDevices, loadDevices]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      if (showDevices) await loadDevices();
+    } finally {
+      setRefreshing(false);
     }
   }, [showDevices, loadDevices]);
 
@@ -149,7 +160,11 @@ export const SettingsScreen: React.FC = () => {
   const borderColor = colors.border;
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: bg }]}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: bg }]}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }>
       {/* Profile Card */}
       <View style={[styles.profileCard, { backgroundColor: surfaceBg }]}>
         <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
@@ -277,7 +292,8 @@ export const SettingsScreen: React.FC = () => {
           <Switch
             value={isDark}
             onValueChange={toggle}
-            trackColor={{ false: '#ccc', true: colors.primary }}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            accessibilityLabel="Toggle dark mode"
           />
         </View>
       </View>
@@ -337,7 +353,9 @@ export const SettingsScreen: React.FC = () => {
       {/* Actions */}
       <TouchableOpacity
         style={[styles.logoutBtn, { borderColor: colors.danger }]}
-        onPress={handleLogout}>
+        onPress={handleLogout}
+        accessibilityLabel="Logout"
+        accessibilityRole="button">
         <Text style={[styles.logoutText, { color: colors.danger }]}>
           Logout
         </Text>
@@ -345,8 +363,10 @@ export const SettingsScreen: React.FC = () => {
 
       <TouchableOpacity
         style={styles.deleteAccountBtn}
-        onPress={handleDeleteAccount}>
-        <Text style={styles.deleteAccountText}>Delete Account</Text>
+        onPress={handleDeleteAccount}
+        accessibilityLabel="Delete account"
+        accessibilityRole="button">
+        <Text style={[styles.deleteAccountText, { color: colors.textTertiary }]}>Delete Account</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -450,7 +470,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   deleteAccountText: {
-    color: '#999',
     fontSize: 14,
     fontWeight: '500',
   },

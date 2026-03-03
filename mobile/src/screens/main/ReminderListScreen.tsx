@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   RefreshControl,
   Animated,
   Alert,
+  ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -17,6 +19,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 
 import { useReminderStore, Reminder } from '../../store/reminderStore';
 import { fetchReminders, toggleReminder, deleteReminder } from '../../api/reminderApi';
+import { useTheme } from '../../theme/ThemeContext';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -125,13 +128,18 @@ const swStyles = StyleSheet.create({
 });
 
 export const ReminderListScreen: React.FC = () => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const reminders = useReminderStore((s) => s.reminders);
   const navigation = useNavigation<Nav>();
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [typeFilter, setTypeFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   useEffect(() => {
-    void fetchReminders();
+    fetchReminders().finally(() => setInitialLoading(false));
   }, []);
 
   useFocusEffect(
@@ -164,11 +172,29 @@ export const ReminderListScreen: React.FC = () => {
     void toggleReminder(id);
   };
 
-  const filteredReminders = search.trim()
-    ? reminders.filter((r) =>
-        r.title.toLowerCase().includes(search.trim().toLowerCase()),
-      )
-    : reminders;
+  const filteredReminders = reminders.filter((r) => {
+    if (search.trim() && !r.title.toLowerCase().includes(search.trim().toLowerCase())) {
+      return false;
+    }
+    if (typeFilter && r.reminder_type !== typeFilter) return false;
+    if (statusFilter === 'active' && !r.is_active) return false;
+    if (statusFilter === 'inactive' && r.is_active) return false;
+    return true;
+  });
+
+  const TYPE_CHIPS = [
+    { key: 'medicine', label: '💊 Medicine' },
+    { key: 'food', label: '🍎 Food' },
+    { key: 'water', label: '💧 Water' },
+    { key: 'sleep', label: '😴 Sleep' },
+    { key: 'exercise', label: '🏃 Exercise' },
+    { key: 'custom', label: '📝 Custom' },
+  ];
+  const STATUS_CHIPS = [
+    { key: 'all' as const, label: 'All' },
+    { key: 'active' as const, label: 'Active' },
+    { key: 'inactive' as const, label: 'Inactive' },
+  ];
 
   return (
     <View style={styles.container}>
@@ -181,11 +207,39 @@ export const ReminderListScreen: React.FC = () => {
             value={search}
             onChangeText={setSearch}
             placeholder="Search reminders..."
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textTertiary}
             returnKeyType="search"
             clearButtonMode="while-editing"
+            accessibilityLabel="Search reminders"
           />
         </View>
+      </View>
+
+      {/* Filter chips */}
+      <View style={styles.chipBar}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
+          {STATUS_CHIPS.map((c) => (
+            <TouchableOpacity
+              key={c.key}
+              style={[styles.chip, statusFilter === c.key && styles.chipActive]}
+              onPress={() => setStatusFilter(c.key)}
+              accessibilityLabel={`Filter ${c.label}`}
+              accessibilityRole="button">
+              <Text style={[styles.chipText, statusFilter === c.key && styles.chipTextActive]}>{c.label}</Text>
+            </TouchableOpacity>
+          ))}
+          <View style={styles.chipDivider} />
+          {TYPE_CHIPS.map((c) => (
+            <TouchableOpacity
+              key={c.key}
+              style={[styles.chip, typeFilter === c.key && styles.chipActive]}
+              onPress={() => setTypeFilter(typeFilter === c.key ? null : c.key)}
+              accessibilityLabel={`Filter by ${c.label}`}
+              accessibilityRole="button">
+              <Text style={[styles.chipText, typeFilter === c.key && styles.chipTextActive]}>{c.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       <FlatList
@@ -193,6 +247,11 @@ export const ReminderListScreen: React.FC = () => {
         keyExtractor={(item) => item.id}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListHeaderComponent={
+          initialLoading ? (
+            <ActivityIndicator size="large" color={colors.primary} style={{ paddingVertical: 32 }} />
+          ) : null
         }
         renderItem={({ item }) => (
           <SwipeableRow
@@ -204,7 +263,9 @@ export const ReminderListScreen: React.FC = () => {
               activeOpacity={0.7}
               onPress={() =>
                 navigation.navigate('ReminderEdit', { reminderId: item.id })
-              }>
+              }
+              accessibilityLabel={`Edit reminder ${item.title}`}
+              accessibilityRole="button">
               <Text style={styles.emoji}>
                 {TYPE_EMOJI[item.reminder_type] || '📝'}
               </Text>
@@ -226,6 +287,7 @@ export const ReminderListScreen: React.FC = () => {
               <Switch
                 value={item.is_active}
                 onValueChange={() => handleToggle(item.id)}
+                accessibilityLabel={`Toggle ${item.title} ${item.is_active ? 'off' : 'on'}`}
               />
             </TouchableOpacity>
           </SwipeableRow>
@@ -240,17 +302,19 @@ export const ReminderListScreen: React.FC = () => {
       <TouchableOpacity
         style={styles.fab}
         activeOpacity={0.85}
-        onPress={() => navigation.navigate('ReminderEdit')}>
+        onPress={() => navigation.navigate('ReminderEdit')}
+        accessibilityLabel="Create new reminder"
+        accessibilityRole="button">
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -258,7 +322,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#e0e0e0',
+    borderColor: colors.border,
   },
   searchIcon: {
     fontSize: 16,
@@ -270,8 +334,43 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#222',
+    color: colors.text,
     paddingVertical: 6,
+  },
+  chipBar: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  chipScroll: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: colors.surfaceAlt,
+    marginRight: 4,
+  },
+  chipActive: {
+    backgroundColor: colors.primary,
+  },
+  chipText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  chipTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  chipDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: colors.border,
+    marginHorizontal: 4,
   },
   item: {
     flexDirection: 'row',
@@ -279,8 +378,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#e0e0e0',
-    backgroundColor: '#fff',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   itemDisabled: {
     opacity: 0.5,
@@ -295,20 +394,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222',
+    color: colors.text,
   },
   titleDisabled: {
-    color: '#999',
+    color: colors.textTertiary,
   },
   subtitle: {
     fontSize: 13,
-    color: '#888',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   empty: {
     marginTop: 48,
     textAlign: 'center',
-    color: '#999',
+    color: colors.textTertiary,
     fontSize: 15,
     lineHeight: 22,
   },
@@ -319,7 +418,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#4A90D9',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 6,

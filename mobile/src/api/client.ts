@@ -1,9 +1,8 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, AxiosHeaders, InternalAxiosRequestConfig } from 'axios';
 
 import { useAuthStore } from '../store/authStore';
 import { saveTokens, clearTokens } from '../services/SecureStorage';
-
-const API_BASE_URL = 'http://10.0.2.2:8000/api/v1';
+import { API_BASE_URL } from '../config';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -14,11 +13,10 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
   if (token) {
+    const headers = new AxiosHeaders(config.headers);
+    headers.set('Authorization', `Bearer ${token}`);
     // eslint-disable-next-line no-param-reassign
-    config.headers = {
-      ...config.headers,
-      Authorization: `Bearer ${token}`,
-    };
+    config.headers = headers;
   }
   return config;
 });
@@ -79,13 +77,14 @@ apiClient.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      // Call the refresh endpoint (refresh_token is a query param in FastAPI)
+      // Call the refresh endpoint (refresh_token in request body)
       const { data } = await axios.post<{
         access_token: string;
         refresh_token: string;
         token_type: string;
-      }>(`${API_BASE_URL}/auth/refresh`, null, {
-        params: { refresh_token: refreshToken },
+      }>(`${API_BASE_URL}/auth/refresh`, {
+        refresh_token: refreshToken,
+      }, {
         timeout: 10000,
       });
 

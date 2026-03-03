@@ -21,5 +21,3 @@ class TimestampMixin:
 
 
 # Models are imported in main.py / env.py so Base.metadata is populated
-
-

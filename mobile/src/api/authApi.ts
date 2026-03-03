@@ -1,6 +1,9 @@
 import { apiClient } from './client';
 import { useAuthStore } from '../store/authStore';
+import { useReminderStore } from '../store/reminderStore';
+import { useCompletionStore } from '../store/completionStore';
 import { saveTokens, clearTokens, loadTokens } from '../services/SecureStorage';
+import { getDatabase } from '../db/database';
 import axios from 'axios';
 
 const API_BASE_URL = 'http://10.0.2.2:8000/api/v1';
@@ -89,7 +92,19 @@ export async function logout(): Promise<void> {
     // ignore network/logout errors
   } finally {
     useAuthStore.getState().clearSession();
+    useReminderStore.getState().setReminders([]);
+    useReminderStore.getState().setLastSyncAt(null);
+    useCompletionStore.getState().setTodayCompletions([]);
+    useCompletionStore.getState().setStreak(null as any);
     await clearTokens();
+    // Clear local SQLite data
+    try {
+      const db = await getDatabase();
+      await db.executeSql('DELETE FROM reminders');
+      await db.executeSql('DELETE FROM offline_queue');
+    } catch {
+      // DB may not be initialized
+    }
   }
 }
 

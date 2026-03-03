@@ -1,15 +1,17 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from loguru import logger
-from sqlalchemy import and_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.asyncio.session import async_sessionmaker
 
 from backend.app.config import get_settings
+from backend.app.models.completion import CompletionRecord, CompletionStatus
 from backend.app.models.device import Device
 from backend.app.models.reminder import Reminder, RepeatType
 from backend.app.notifications.fcm import send_notification_to_devices
+from backend.app.services.reminder_service import compute_next_trigger
 
 
 settings = get_settings()
@@ -21,7 +23,7 @@ SessionLocal = async_sessionmaker(
 
 
 async def process_due_reminders() -> None:
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     async with SessionLocal() as session:  # type: AsyncSession
         logger.debug("Checking for due reminders at {}", now)
         result = await session.execute(
@@ -72,44 +74,97 @@ async def _notify_for_reminder(
 
     # Update reminder next_trigger_at / last_triggered_at
     reminder.last_triggered_at = now
-    reminder.next_trigger_at = _compute_next_trigger(reminder, now)
+
+    # Handle "once" type: disable after firing
+    if reminder.repeat_type == RepeatType.ONCE:
+        reminder.is_active = False
+        reminder.next_trigger_at = None
+    else:
+        repeat_value = (
+            reminder.repeat_type.value
+            if hasattr(reminder.repeat_type, "value")
+            else reminder.repeat_type
+        )
+        reminder.next_trigger_at = compute_next_trigger(
+            time_of_day=reminder.time_of_day,
+            repeat_type=repeat_value,
+            custom_days=reminder.custom_days,
+            start_date=reminder.start_date,
+            end_date=reminder.end_date,
+        )
     session.add(reminder)
 
 
-def _compute_next_trigger(reminder: Reminder, from_time: datetime) -> datetime | None:
-    """Simple next trigger computation based on repeat_type and time_of_day."""
-    base_date = from_time.date()
-    time_of_day = reminder.time_of_day
-    next_dt = datetime.combine(base_date, time_of_day)
-    if next_dt <= from_time:
-        next_dt += timedelta(days=1)
+# Grace period (minutes) after a reminder's trigger time before marking as missed
+MISSED_GRACE_MINUTES = 30
 
-    if reminder.repeat_type == RepeatType.ONCE:
-        # Only trigger once; after firing, disable
-        reminder.is_active = False
-        return None
-    elif reminder.repeat_type == RepeatType.DAILY:
-        return next_dt
-    elif reminder.repeat_type in (RepeatType.WEEKLY, RepeatType.CUSTOM):
-        # custom_days is stored as {"days": [0-6]} using JS convention (0=Sun)
-        days = (reminder.custom_days or {}).get("days")
-        if not days:
-            return next_dt
-        # Convert JS weekday (0=Sun) to Python weekday (0=Mon)
-        # JS: 0=Sun,1=Mon,...,6=Sat  →  Python: 0=Mon,...,5=Sat,6=Sun
-        python_days = [((d - 1) % 7) for d in days]
-        for offset in range(0, 8):
-            candidate = next_dt + timedelta(days=offset)
-            if candidate.weekday() in python_days and candidate > from_time:
-                return candidate
-        return None
-    else:
-        return next_dt
+
+async def mark_missed_completions() -> None:
+    """Create 'missed' completion records for reminders that were triggered
+    but received no user action within the grace period."""
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(minutes=MISSED_GRACE_MINUTES)
+
+    async with SessionLocal() as session:
+        # Reminders that were triggered before the cutoff and have already
+        # advanced their next_trigger_at (meaning the notification was sent).
+        result = await session.execute(
+            select(Reminder)
+            .where(
+                and_(
+                    Reminder.is_active.is_(True),
+                    Reminder.deleted_at.is_(None),
+                    Reminder.last_triggered_at.is_not(None),
+                    Reminder.last_triggered_at <= cutoff,
+                )
+            )
+            .limit(500)
+        )
+        reminders = list(result.scalars().all())
+        if not reminders:
+            return
+
+        for reminder in reminders:
+            date_key = reminder.last_triggered_at.strftime("%Y-%m-%d")
+
+            # Check if a completion record already exists for this
+            # reminder + user + date (any status counts).
+            existing = await session.execute(
+                select(func.count())
+                .select_from(CompletionRecord)
+                .where(
+                    and_(
+                        CompletionRecord.reminder_id == reminder.id,
+                        CompletionRecord.user_id == reminder.user_id,
+                        CompletionRecord.date_key == date_key,
+                    )
+                )
+            )
+            if existing.scalar_one() > 0:
+                continue
+
+            record = CompletionRecord(
+                reminder_id=reminder.id,
+                user_id=reminder.user_id,
+                scheduled_at=reminder.last_triggered_at,
+                completed_at=now,
+                status=CompletionStatus.MISSED,
+                date_key=date_key,
+            )
+            session.add(record)
+            logger.info(
+                "Marked reminder {} as missed for {}",
+                reminder.id,
+                date_key,
+            )
+
+        await session.commit()
 
 
 def create_scheduler() -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler(timezone="UTC")
     scheduler.add_job(process_due_reminders, "interval", minutes=1, id="due-reminders")
+    scheduler.add_job(mark_missed_completions, "interval", minutes=5, id="mark-missed")
     return scheduler
 
 
@@ -128,4 +183,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
