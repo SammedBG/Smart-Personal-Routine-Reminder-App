@@ -10,7 +10,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 
 import { useCompletionStore } from '../../store/completionStore';
-import { fetchStreakInfo, DailyStats } from '../../api/completionApi';
+import { fetchStreakInfo } from '../../api/completionApi';
 import { useTheme } from '../../theme/ThemeContext';
 
 const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];

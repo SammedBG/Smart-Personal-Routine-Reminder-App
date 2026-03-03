@@ -21,8 +21,6 @@ import {
   useReminderStore,
   ReminderType,
   RepeatType,
-  MedicineDetails,
-  ExerciseDetails,
 } from '../../store/reminderStore';
 import { useTheme } from '../../theme/ThemeContext';
 import type { RootStackParamList } from '../../navigation/RootNavigator';

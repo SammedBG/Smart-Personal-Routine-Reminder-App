@@ -13,7 +13,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import { useReminderStore, Reminder } from '../../store/reminderStore';
 import { useCompletionStore } from '../../store/completionStore';
-import { fetchReminders, toggleReminder } from '../../api/reminderApi';
+import { fetchReminders } from '../../api/reminderApi';
 import {
   recordCompletion,
   fetchTodayCompletions,
