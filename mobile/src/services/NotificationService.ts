@@ -1,4 +1,5 @@
-import PushNotification, { PushNotificationScheduleObject } from 'react-native-push-notification';
+import PushNotification from 'react-native-push-notification';
+import type { PushNotificationScheduleObject, ReceivedNotification } from 'react-native-push-notification';
 import messaging from '@react-native-firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
