@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 
 import { useReminderStore, Reminder } from '../../store/reminderStore';
 import { fetchReminders, toggleReminder, deleteReminder } from '../../api/reminderApi';
+import { useTheme } from '../../theme/ThemeContext';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -127,6 +128,8 @@ const swStyles = StyleSheet.create({
 });
 
 export const ReminderListScreen: React.FC = () => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const reminders = useReminderStore((s) => s.reminders);
   const navigation = useNavigation<Nav>();
   const [refreshing, setRefreshing] = useState(false);
@@ -204,7 +207,7 @@ export const ReminderListScreen: React.FC = () => {
             value={search}
             onChangeText={setSearch}
             placeholder="Search reminders..."
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textTertiary}
             returnKeyType="search"
             clearButtonMode="while-editing"
           />
@@ -242,7 +245,7 @@ export const ReminderListScreen: React.FC = () => {
         }
         ListHeaderComponent={
           initialLoading ? (
-            <ActivityIndicator size="large" color="#4A90D9" style={{ paddingVertical: 32 }} />
+            <ActivityIndicator size="large" color={colors.primary} style={{ paddingVertical: 32 }} />
           ) : null
         }
         renderItem={({ item }) => (
@@ -298,10 +301,10 @@ export const ReminderListScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -309,7 +312,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#e0e0e0',
+    borderColor: colors.border,
   },
   searchIcon: {
     fontSize: 16,
@@ -321,12 +324,12 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#222',
+    color: colors.text,
     paddingVertical: 6,
   },
   chipBar: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#e0e0e0',
+    borderColor: colors.border,
   },
   chipScroll: {
     paddingHorizontal: 12,
@@ -339,15 +342,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 14,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: colors.surfaceAlt,
     marginRight: 4,
   },
   chipActive: {
-    backgroundColor: '#4A90D9',
+    backgroundColor: colors.primary,
   },
   chipText: {
     fontSize: 12,
-    color: '#555',
+    color: colors.textSecondary,
   },
   chipTextActive: {
     color: '#fff',
@@ -356,7 +359,7 @@ const styles = StyleSheet.create({
   chipDivider: {
     width: 1,
     height: 20,
-    backgroundColor: '#ddd',
+    backgroundColor: colors.border,
     marginHorizontal: 4,
   },
   item: {
@@ -365,8 +368,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#e0e0e0',
-    backgroundColor: '#fff',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   itemDisabled: {
     opacity: 0.5,
@@ -381,20 +384,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222',
+    color: colors.text,
   },
   titleDisabled: {
-    color: '#999',
+    color: colors.textTertiary,
   },
   subtitle: {
     fontSize: 13,
-    color: '#888',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   empty: {
     marginTop: 48,
     textAlign: 'center',
-    color: '#999',
+    color: colors.textTertiary,
     fontSize: 15,
     lineHeight: 22,
   },
@@ -405,7 +408,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#4A90D9',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 6,

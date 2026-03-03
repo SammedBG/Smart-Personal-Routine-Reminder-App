@@ -292,7 +292,7 @@ export const SettingsScreen: React.FC = () => {
           <Switch
             value={isDark}
             onValueChange={toggle}
-            trackColor={{ false: '#ccc', true: colors.primary }}
+            trackColor={{ false: colors.border, true: colors.primary }}
           />
         </View>
       </View>
@@ -465,7 +465,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   deleteAccountText: {
-    color: '#999',
     fontSize: 14,
     fontWeight: '500',
   },

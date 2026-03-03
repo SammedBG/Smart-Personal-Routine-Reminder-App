@@ -282,7 +282,7 @@ export const TodayScreen: React.FC = () => {
               styles.card,
               { backgroundColor: colors.cardBg },
               isDone && { backgroundColor: isDark ? '#1a2e1a' : '#f0f9f0', opacity: 0.8 },
-              isMissed && styles.cardMissed,
+              isMissed && [styles.cardMissed, { borderLeftColor: colors.danger }],
             ]}>
               <Text style={styles.emoji}>
                 {TYPE_EMOJI[item.reminder_type] || '📝'}
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
   },
   cardMissed: {
     borderLeftWidth: 3,
-    borderLeftColor: '#e74c3c',
+    borderLeftColor: '#e74c3c', // overridden inline when theming
   },
   emoji: {
     fontSize: 24,

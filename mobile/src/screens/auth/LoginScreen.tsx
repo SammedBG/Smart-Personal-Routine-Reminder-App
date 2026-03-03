@@ -55,7 +55,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={[styles.title, { color: colors.text }]}>Welcome Back</Text>
         {error && <Text style={styles.error}>{error}</Text>}
         <TextInput
-          style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.card }]}
+          style={[styles.input, { borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBg }]}
           placeholder="Email"
           placeholderTextColor={colors.textSecondary}
           autoCapitalize="none"
@@ -65,7 +65,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           accessibilityLabel="Email address"
         />
         <TextInput
-          style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.card }]}
+          style={[styles.input, { borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBg }]}
           placeholder="Password"
           placeholderTextColor={colors.textSecondary}
           secureTextEntry

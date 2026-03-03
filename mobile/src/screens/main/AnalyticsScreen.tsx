@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import { useCompletionStore } from '../../store/completionStore';
 import { fetchStreakInfo, DailyStats } from '../../api/completionApi';
+import { useTheme } from '../../theme/ThemeContext';
 
 const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -21,6 +22,8 @@ function dayLabelFromDate(dateStr: string): string {
 }
 
 export const AnalyticsScreen: React.FC = () => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const streak = useCompletionStore((s) => s.streak);
   const [refreshing, setRefreshing] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -53,7 +56,7 @@ export const AnalyticsScreen: React.FC = () => {
   if (initialLoading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#4A90D9" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -174,10 +177,10 @@ export const AnalyticsScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f7f8fc',
+    backgroundColor: colors.background,
   },
   streakRow: {
     flexDirection: 'row',
@@ -187,7 +190,7 @@ const styles = StyleSheet.create({
   },
   streakCard: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.cardBg,
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
@@ -198,9 +201,9 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
   },
   streakCardPrimary: {
-    backgroundColor: '#fff5f0',
+    backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
-    borderColor: '#ffe0cc',
+    borderColor: colors.warning,
   },
   streakEmoji: {
     fontSize: 28,
@@ -209,18 +212,18 @@ const styles = StyleSheet.create({
   streakNumber: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#222',
+    color: colors.text,
   },
   streakLabel: {
     fontSize: 12,
-    color: '#888',
+    color: colors.textSecondary,
     fontWeight: '500',
     marginTop: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   todayCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.cardBg,
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 16,
@@ -234,7 +237,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#333',
+    color: colors.text,
     marginBottom: 16,
   },
   todayRow: {
@@ -248,23 +251,23 @@ const styles = StyleSheet.create({
   todayNumber: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#222',
+    color: colors.text,
   },
   rateText: {
-    color: '#4A90D9',
+    color: colors.primary,
   },
   todayLabel: {
     fontSize: 12,
-    color: '#888',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   todayDivider: {
     width: 1,
     height: 40,
-    backgroundColor: '#e8ecf4',
+    backgroundColor: colors.border,
   },
   chartCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.cardBg,
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 16,
@@ -287,7 +290,7 @@ const styles = StyleSheet.create({
   },
   chartValue: {
     fontSize: 10,
-    color: '#999',
+    color: colors.textTertiary,
     marginBottom: 4,
   },
   barContainer: {
@@ -300,29 +303,29 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     width: 24,
-    backgroundColor: '#e8ecf4',
+    backgroundColor: colors.border,
     borderRadius: 4,
   },
   barFill: {
     width: 24,
-    backgroundColor: '#4A90D9',
+    backgroundColor: colors.primary,
     borderRadius: 4,
   },
   barPerfect: {
-    backgroundColor: '#27ae60',
+    backgroundColor: colors.success,
   },
   chartLabel: {
     fontSize: 11,
-    color: '#888',
+    color: colors.textSecondary,
     marginTop: 6,
     fontWeight: '500',
   },
   chartLabelToday: {
-    color: '#4A90D9',
+    color: colors.primary,
     fontWeight: '700',
   },
   tipsCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.cardBg,
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 32,
@@ -336,7 +339,7 @@ const styles = StyleSheet.create({
   },
   tipText: {
     fontSize: 14,
-    color: '#555',
+    color: colors.textSecondary,
     lineHeight: 22,
   },
 });

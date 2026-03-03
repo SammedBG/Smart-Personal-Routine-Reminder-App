@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -24,15 +24,16 @@ import {
   MedicineDetails,
   ExerciseDetails,
 } from '../../store/reminderStore';
+import { useTheme } from '../../theme/ThemeContext';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 const REMINDER_TYPES: { label: string; value: ReminderType }[] = [
-  { label: '💊 Medicine', value: 'medicine' },
-  { label: '🍎 Food', value: 'food' },
-  { label: '💧 Water', value: 'water' },
-  { label: '😴 Sleep', value: 'sleep' },
-  { label: '🏃 Exercise', value: 'exercise' },
-  { label: '✏️ Custom', value: 'custom' },
+  { label: 'ðŸ’Š Medicine', value: 'medicine' },
+  { label: 'ðŸŽ Food', value: 'food' },
+  { label: 'ðŸ’§ Water', value: 'water' },
+  { label: 'ðŸ˜´ Sleep', value: 'sleep' },
+  { label: 'ðŸƒ Exercise', value: 'exercise' },
+  { label: 'âœï¸ Custom', value: 'custom' },
 ];
 
 const REPEAT_TYPES: { label: string; value: RepeatType }[] = [
@@ -51,6 +52,8 @@ type ScreenRoute = RouteProp<RootStackParamList, 'ReminderEdit'>;
 type ScreenNav = NativeStackNavigationProp<RootStackParamList>;
 
 export const ReminderEditScreen: React.FC = () => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const navigation = useNavigation<ScreenNav>();
   const route = useRoute<ScreenRoute>();
   const reminderId = route.params?.reminderId;
@@ -241,7 +244,7 @@ export const ReminderEditScreen: React.FC = () => {
         value={title}
         onChangeText={setTitle}
         placeholder="e.g. Take morning vitamins"
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.textTertiary}
         maxLength={255}
       />
 
@@ -251,7 +254,7 @@ export const ReminderEditScreen: React.FC = () => {
         value={description}
         onChangeText={setDescription}
         placeholder="Additional details..."
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.textTertiary}
         multiline
         maxLength={1024}
       />
@@ -288,7 +291,7 @@ export const ReminderEditScreen: React.FC = () => {
             value={dosage}
             onChangeText={setDosage}
             placeholder="e.g. 500mg, 1 tablet"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textTertiary}
           />
 
           <Text style={styles.label}>Quantity</Text>
@@ -297,7 +300,7 @@ export const ReminderEditScreen: React.FC = () => {
             value={quantity}
             onChangeText={setQuantity}
             placeholder="1"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textTertiary}
             keyboardType="numeric"
           />
 
@@ -312,7 +315,7 @@ export const ReminderEditScreen: React.FC = () => {
             value={durationDays}
             onChangeText={setDurationDays}
             placeholder="e.g. 30"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textTertiary}
             keyboardType="numeric"
           />
         </View>
@@ -350,7 +353,7 @@ export const ReminderEditScreen: React.FC = () => {
             value={durationMinutes}
             onChangeText={setDurationMinutes}
             placeholder="30"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textTertiary}
             keyboardType="numeric"
           />
 
@@ -383,7 +386,7 @@ export const ReminderEditScreen: React.FC = () => {
         value={timeOfDay}
         onChangeText={setTimeOfDay}
         placeholder="HH:MM"
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.textTertiary}
         keyboardType="numbers-and-punctuation"
         maxLength={8}
       />
@@ -445,7 +448,7 @@ export const ReminderEditScreen: React.FC = () => {
         value={startDate}
         onChangeText={setStartDate}
         placeholder="e.g. 2025-01-15"
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.textTertiary}
         keyboardType="numbers-and-punctuation"
         maxLength={10}
       />
@@ -456,7 +459,7 @@ export const ReminderEditScreen: React.FC = () => {
         value={endDate}
         onChangeText={setEndDate}
         placeholder="e.g. 2025-12-31"
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.textTertiary}
         keyboardType="numbers-and-punctuation"
         maxLength={10}
       />
@@ -479,25 +482,25 @@ export const ReminderEditScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+const makeStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, paddingBottom: 40 },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: colors.text,
     marginTop: 16,
     marginBottom: 6,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.inputBorder,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    backgroundColor: '#fafafa',
-    color: '#222',
+    backgroundColor: colors.inputBg,
+    color: colors.text,
   },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
@@ -505,24 +508,24 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#ddd',
-    backgroundColor: '#f5f5f5',
+    borderColor: colors.inputBorder,
+    backgroundColor: colors.surfaceAlt,
   },
-  chipSelected: { backgroundColor: '#4A90D9', borderColor: '#4A90D9' },
-  chipText: { fontSize: 13, color: '#333' },
+  chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { fontSize: 13, color: colors.text },
   chipTextSelected: { color: '#fff', fontWeight: '600' },
   dayChip: {
     width: 42,
     height: 42,
     borderRadius: 21,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.inputBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surfaceAlt,
   },
-  dayChipSelected: { backgroundColor: '#4A90D9', borderColor: '#4A90D9' },
-  dayText: { fontSize: 12, color: '#333' },
+  dayChipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  dayText: { fontSize: 12, color: colors.text },
   dayTextSelected: { color: '#fff', fontWeight: '600' },
   switchRow: {
     flexDirection: 'row',
@@ -535,17 +538,17 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 4,
     borderTopWidth: 1,
-    borderTopColor: '#e8ecf4',
+    borderTopColor: colors.border,
   },
   detailsSectionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#4A90D9',
+    color: colors.primary,
     marginBottom: 4,
   },
   saveBtn: {
     marginTop: 24,
-    backgroundColor: '#4A90D9',
+    backgroundColor: colors.primary,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
@@ -555,9 +558,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#d9534f',
+    borderColor: colors.danger,
     paddingVertical: 14,
     alignItems: 'center',
   },
-  deleteBtnText: { color: '#d9534f', fontSize: 16, fontWeight: '600' },
+  deleteBtnText: { color: colors.danger, fontSize: 16, fontWeight: '600' },
 });
