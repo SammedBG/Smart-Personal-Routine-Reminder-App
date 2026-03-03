@@ -63,3 +63,5 @@ mobile/.expo/
 backend/smart_routines.db
 # (Note: backend/alembic/versions should usually be committed, so we don't ignore it here)
 smart_routines.db
+smartroutines-deba3-firebase-adminsdk-fbsvc-8ae2d1c926.json
+google-services.json
