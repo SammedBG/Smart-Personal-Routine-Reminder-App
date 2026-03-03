@@ -52,7 +52,7 @@ class TestOnceReminder:
 class TestWeeklyReminder:
     def test_weekly_specific_days(self):
         """Weekly reminder on Mon (1) and Wed (3) with far-future start."""
-        # 2099-06-15 is a Tuesday (weekday()=1, JS=2)
+        # 2099-06-15 is a Monday (weekday()=0, JS=1)
         start = date(2099, 6, 15)
         result = compute_next_trigger(
             time_of_day=time(7, 0),
@@ -61,9 +61,8 @@ class TestWeeklyReminder:
             start_date=start,
         )
         assert result is not None
-        # Next Mon or Wed after 2099-06-15 (Tue)
-        # Wed = JS 3 => 2099-06-16
-        assert result.date() == date(2099, 6, 16)
+        # 2099-06-15 is Monday (JS=1), which is in [1,3], so trigger is same day
+        assert result.date() == date(2099, 6, 15)
 
     def test_weekly_no_days_specified(self):
         """Weekly with empty days list should still produce a trigger."""
@@ -78,7 +77,7 @@ class TestWeeklyReminder:
 
     def test_custom_days(self):
         """Custom days [0, 6] = Sun and Sat."""
-        # 2099-06-15 is Tuesday => next Sat is 2099-06-19
+        # 2099-06-15 is Monday => next Sat is 2099-06-20, next Sun is 2099-06-21
         start = date(2099, 6, 15)
         result = compute_next_trigger(
             time_of_day=time(10, 0),
@@ -87,8 +86,8 @@ class TestWeeklyReminder:
             start_date=start,
         )
         assert result is not None
-        # Sat = JS 6, Python weekday 5 => offset from Tue: +4 = 2099-06-19
-        assert result.date() == date(2099, 6, 19)
+        # Sat = JS 6 => Python weekday 5 => offset from Mon: +5 = 2099-06-20
+        assert result.date() == date(2099, 6, 20)
 
     def test_end_date_bounds(self):
         """Trigger should be None if next candidate is past end_date."""

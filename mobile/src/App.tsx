@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ActivityIndicator, View } from 'react-native';
 
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { RootNavigator } from './navigation/RootNavigator';
 import { restoreSessionFromStorage } from './api/authApi';
 import { initialLoadReminders, syncFromServer, startNetInfoListener } from './services/SyncService';
@@ -100,9 +101,11 @@ const AppInner = () => {
 };
 
 const App = () => (
-  <ThemeProvider>
-    <AppInner />
-  </ThemeProvider>
+  <ErrorBoundary>
+    <ThemeProvider>
+      <AppInner />
+    </ThemeProvider>
+  </ErrorBoundary>
 );
 
 export default App;

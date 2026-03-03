@@ -51,6 +51,10 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 @pytest_asyncio.fixture
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """HTTPX async client with DB dependency overridden."""
+    # Disable rate limiting for tests
+    from backend.app.api.v1.auth import limiter
+    limiter.enabled = False
+
     app = create_app()
 
     async def _override_get_db():
@@ -66,3 +70,5 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
+
+    limiter.enabled = True

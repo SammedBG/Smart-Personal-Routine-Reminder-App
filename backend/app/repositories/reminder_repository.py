@@ -29,7 +29,7 @@ class ReminderRepository:
         self, user_id: UUID, reminder_id: UUID
     ) -> Optional[Reminder]:
         result = await self.db.execute(
-            self._base_query(user_id).where(Reminder.id == reminder_id)
+            self._base_query(user_id).where(Reminder.id == str(reminder_id))
         )
         return result.scalar_one_or_none()
 

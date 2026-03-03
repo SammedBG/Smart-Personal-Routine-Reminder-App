@@ -79,13 +79,14 @@ apiClient.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      // Call the refresh endpoint (refresh_token is a query param in FastAPI)
+      // Call the refresh endpoint (refresh_token in request body)
       const { data } = await axios.post<{
         access_token: string;
         refresh_token: string;
         token_type: string;
-      }>(`${API_BASE_URL}/auth/refresh`, null, {
-        params: { refresh_token: refreshToken },
+      }>(`${API_BASE_URL}/auth/refresh`, {
+        refresh_token: refreshToken,
+      }, {
         timeout: 10000,
       });
 

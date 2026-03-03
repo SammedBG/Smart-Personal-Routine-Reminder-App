@@ -25,7 +25,7 @@ def compute_next_trigger(
 
     # Earliest allowed date
     effective_today = max(today, start_date) if start_date else today
-    trigger_time = datetime.combine(effective_today, time_of_day)
+    trigger_time = datetime.combine(effective_today, time_of_day, tzinfo=timezone.utc)
 
     # Helper: check candidate is within date bounds
     def _in_bounds(dt: datetime) -> bool:
@@ -70,7 +70,7 @@ def compute_next_trigger(
             candidate_js = (js_today + offset) % 7
             if candidate_js in days:
                 candidate = datetime.combine(
-                    effective_today + timedelta(days=offset), time_of_day
+                    effective_today + timedelta(days=offset), time_of_day, tzinfo=timezone.utc
                 )
                 if _in_bounds(candidate):
                     return candidate
