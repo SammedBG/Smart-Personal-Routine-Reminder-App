@@ -48,7 +48,7 @@ export async function initNotifications(): Promise<void> {
 
   PushNotification.configure({
     onRegister: () => {},
-    onNotification: (notification) => {
+    onNotification: (notification: ReceivedNotification) => {
       // When user taps a notification, navigate to the reminder
       const reminderId = notification?.data?.reminderId;
       if (reminderId && _navigationRef?.isReady?.()) {
