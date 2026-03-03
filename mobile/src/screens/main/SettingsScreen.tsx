@@ -361,7 +361,7 @@ export const SettingsScreen: React.FC = () => {
       <TouchableOpacity
         style={styles.deleteAccountBtn}
         onPress={handleDeleteAccount}>
-        <Text style={styles.deleteAccountText}>Delete Account</Text>
+        <Text style={[styles.deleteAccountText, { color: colors.textTertiary }]}>Delete Account</Text>
       </TouchableOpacity>
     </ScrollView>
   );

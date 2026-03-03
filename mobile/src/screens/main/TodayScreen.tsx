@@ -308,17 +308,23 @@ export const TodayScreen: React.FC = () => {
                 <View style={styles.actionRow}>
                   <TouchableOpacity
                     style={[styles.actionBtn, { backgroundColor: colors.success }]}
-                    onPress={() => handleAction(item, 'done')}>
+                    onPress={() => handleAction(item, 'done')}
+                    accessibilityLabel={`Mark ${item.title} as done`}
+                    accessibilityRole="button">
                     <Text style={styles.actionBtnText}>✓</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.actionBtn, { backgroundColor: colors.primaryLight }]}
-                    onPress={() => handleAction(item, 'skipped')}>
+                    onPress={() => handleAction(item, 'skipped')}
+                    accessibilityLabel={`Skip ${item.title}`}
+                    accessibilityRole="button">
                     <Text style={styles.actionBtnTextAlt}>⏭</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.actionBtn, { backgroundColor: isDark ? '#3a2800' : '#fff3e0' }]}
-                    onPress={() => handleAction(item, 'snoozed')}>
+                    onPress={() => handleAction(item, 'snoozed')}
+                    accessibilityLabel={`Snooze ${item.title}`}
+                    accessibilityRole="button">
                     <Text style={styles.actionBtnTextAlt}>⏰</Text>
                   </TouchableOpacity>
                 </View>

@@ -246,6 +246,7 @@ export const ReminderEditScreen: React.FC = () => {
         placeholder="e.g. Take morning vitamins"
         placeholderTextColor={colors.textTertiary}
         maxLength={255}
+        accessibilityLabel="Reminder title"
       />
 
       <Text style={styles.label}>Description (optional)</Text>
@@ -467,14 +468,18 @@ export const ReminderEditScreen: React.FC = () => {
       <TouchableOpacity
         style={[styles.saveBtn, saving && { opacity: 0.6 }]}
         onPress={handleSave}
-        disabled={saving}>
+        disabled={saving}
+        accessibilityLabel={isEdit ? 'Update reminder' : 'Create reminder'}
+        accessibilityRole="button">
         <Text style={styles.saveBtnText}>
           {saving ? 'Saving...' : isEdit ? 'Update Reminder' : 'Create Reminder'}
         </Text>
       </TouchableOpacity>
 
       {isEdit && (
-        <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
+        <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}
+          accessibilityLabel="Delete reminder"
+          accessibilityRole="button">
           <Text style={styles.deleteBtnText}>Delete Reminder</Text>
         </TouchableOpacity>
       )}

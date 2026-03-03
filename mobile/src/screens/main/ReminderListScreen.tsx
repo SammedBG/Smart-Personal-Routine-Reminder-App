@@ -210,6 +210,7 @@ export const ReminderListScreen: React.FC = () => {
             placeholderTextColor={colors.textTertiary}
             returnKeyType="search"
             clearButtonMode="while-editing"
+            accessibilityLabel="Search reminders"
           />
         </View>
       </View>
@@ -221,7 +222,9 @@ export const ReminderListScreen: React.FC = () => {
             <TouchableOpacity
               key={c.key}
               style={[styles.chip, statusFilter === c.key && styles.chipActive]}
-              onPress={() => setStatusFilter(c.key)}>
+              onPress={() => setStatusFilter(c.key)}
+              accessibilityLabel={`Filter ${c.label}`}
+              accessibilityRole="button">
               <Text style={[styles.chipText, statusFilter === c.key && styles.chipTextActive]}>{c.label}</Text>
             </TouchableOpacity>
           ))}
@@ -230,7 +233,9 @@ export const ReminderListScreen: React.FC = () => {
             <TouchableOpacity
               key={c.key}
               style={[styles.chip, typeFilter === c.key && styles.chipActive]}
-              onPress={() => setTypeFilter(typeFilter === c.key ? null : c.key)}>
+              onPress={() => setTypeFilter(typeFilter === c.key ? null : c.key)}
+              accessibilityLabel={`Filter by ${c.label}`}
+              accessibilityRole="button">
               <Text style={[styles.chipText, typeFilter === c.key && styles.chipTextActive]}>{c.label}</Text>
             </TouchableOpacity>
           ))}
@@ -258,7 +263,9 @@ export const ReminderListScreen: React.FC = () => {
               activeOpacity={0.7}
               onPress={() =>
                 navigation.navigate('ReminderEdit', { reminderId: item.id })
-              }>
+              }
+              accessibilityLabel={`Edit reminder ${item.title}`}
+              accessibilityRole="button">
               <Text style={styles.emoji}>
                 {TYPE_EMOJI[item.reminder_type] || '📝'}
               </Text>
@@ -280,6 +287,7 @@ export const ReminderListScreen: React.FC = () => {
               <Switch
                 value={item.is_active}
                 onValueChange={() => handleToggle(item.id)}
+                accessibilityLabel={`Toggle ${item.title} ${item.is_active ? 'off' : 'on'}`}
               />
             </TouchableOpacity>
           </SwipeableRow>
@@ -294,7 +302,9 @@ export const ReminderListScreen: React.FC = () => {
       <TouchableOpacity
         style={styles.fab}
         activeOpacity={0.85}
-        onPress={() => navigation.navigate('ReminderEdit')}>
+        onPress={() => navigation.navigate('ReminderEdit')}
+        accessibilityLabel="Create new reminder"
+        accessibilityRole="button">
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
     </View>

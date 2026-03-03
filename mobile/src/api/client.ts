@@ -2,8 +2,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 import { useAuthStore } from '../store/authStore';
 import { saveTokens, clearTokens } from '../services/SecureStorage';
-
-const API_BASE_URL = 'http://10.0.2.2:8000/api/v1';
+import { API_BASE_URL } from '../config';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
