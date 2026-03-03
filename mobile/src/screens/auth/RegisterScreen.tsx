@@ -153,5 +153,5 @@ const styles = StyleSheet.create({
   link: {
     fontWeight: '600',
   },
-});});
+});
 
