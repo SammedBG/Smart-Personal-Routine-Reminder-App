@@ -4,7 +4,6 @@ import { useReminderStore } from '../store/reminderStore';
 import { useCompletionStore } from '../store/completionStore';
 import { saveTokens, clearTokens, loadTokens } from '../services/SecureStorage';
 import { getDatabase } from '../db/database';
-import axios from 'axios';
 
 type LoginPayload = {
   email: string;
@@ -65,7 +64,7 @@ export async function restoreSessionFromStorage(): Promise<void> {
       return;
     }
     try {
-      const { data } = await axios.post<TokenPair>(`${API_BASE_URL}/auth/refresh`, null, {
+      const { data } = await apiClient.post<TokenPair>('/auth/refresh', null, {
         params: { refresh_token: stored.refreshToken },
         timeout: 10000,
       });

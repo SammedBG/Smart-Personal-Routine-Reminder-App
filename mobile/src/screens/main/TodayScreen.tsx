@@ -17,7 +17,6 @@ import { fetchReminders } from '../../api/reminderApi';
 import {
   recordCompletion,
   fetchTodayCompletions,
-  fetchStreakInfo,
   CompletionStatus,
 } from '../../api/completionApi';
 import { useTheme } from '../../theme/ThemeContext';
@@ -78,18 +77,21 @@ export const TodayScreen: React.FC = () => {
   const { isDark, colors } = useTheme();
   const reminders = useReminderStore((s) => s.reminders);
   const todayCompletions = useCompletionStore((s) => s.todayCompletions);
-  const streak = useCompletionStore((s) => s.streak);
   const [refreshing, setRefreshing] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [now, setNow] = useState(new Date());
+
+  // Real-time clock — update every 30 seconds to refresh "upcoming vs missed" state
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
 
   const loadAll = useCallback(async () => {
     await Promise.all([
       fetchReminders(),
       fetchTodayCompletions()
         .then((c) => useCompletionStore.getState().setTodayCompletions(c))
-        .catch(() => {}),
-      fetchStreakInfo()
-        .then((s) => useCompletionStore.getState().setStreak(s))
         .catch(() => {}),
     ]);
     setInitialLoading(false);
@@ -116,7 +118,6 @@ export const TodayScreen: React.FC = () => {
       .filter(isScheduledForToday)
       .sort((a, b) => a.time_of_day.localeCompare(b.time_of_day));
 
-    const now = new Date();
     const upcoming: Reminder[] = [];
     const completed: Reminder[] = [];
     const missed: Reminder[] = [];
@@ -163,6 +164,14 @@ export const TodayScreen: React.FC = () => {
     try { await loadAll(); } finally { setRefreshing(false); }
   }, [loadAll]);
 
+  // Auto-refresh completions every 60 seconds while screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      const interval = setInterval(() => { void loadAll(); }, 60_000);
+      return () => clearInterval(interval);
+    }, [loadAll]),
+  );
+
   // Auto-record missed completions for past-due reminders
   const autoMissedRan = useRef(false);
   useEffect(() => {
@@ -183,14 +192,10 @@ export const TodayScreen: React.FC = () => {
           const record = await recordCompletion(r.id, 'missed', new Date().toISOString());
           useCompletionStore.getState().addCompletion(record);
         } catch {
-          // ignore individual failures
+          // ignore
         }
       }),
-    ).then(() => {
-      fetchStreakInfo()
-        .then((s) => useCompletionStore.getState().setStreak(s))
-        .catch(() => {});
-    });
+    );
   }, [reminders, completionMap]);
 
   const handleAction = async (reminder: Reminder, status: CompletionStatus) => {
@@ -198,22 +203,16 @@ export const TodayScreen: React.FC = () => {
       const scheduledAt = new Date().toISOString();
       let snoozedTo: string | undefined;
       if (status === 'snoozed') {
-        // Snooze by 15 minutes
         const snoozeTime = new Date(Date.now() + 15 * 60 * 1000);
         snoozedTo = snoozeTime.toISOString();
       }
       const record = await recordCompletion(reminder.id, status, scheduledAt, snoozedTo);
       useCompletionStore.getState().addCompletion(record);
-      // Refresh streak
-      fetchStreakInfo()
-        .then((s) => useCompletionStore.getState().setStreak(s))
-        .catch(() => {});
     } catch (e: any) {
       Alert.alert('Error', e?.message || 'Failed to record action');
     }
   };
 
-  const now = new Date();
   const dateStr = `${WEEKDAY_NAMES[now.getDay()]}, ${MONTH_NAMES[now.getMonth()]} ${now.getDate()}`;
 
   if (initialLoading) {
@@ -226,15 +225,13 @@ export const TodayScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header with date + streak */}
-      <View style={[styles.header, { backgroundColor: colors.surface }]}>
-        <View>
-          <Text style={[styles.date, { color: colors.text }]}>{dateStr}</Text>
-          {streak && streak.current_streak > 0 && (
-            <Text style={[styles.streakBadge, { color: colors.warning }]}>
-              🔥 {streak.current_streak} day streak
-            </Text>
-          )}
+      {/* Clean header — date + progress count only */}
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <Text style={[styles.date, { color: colors.text }]}>{dateStr}</Text>
+        <View style={[styles.todayBadge, { backgroundColor: colors.primaryLight }]}>
+          <Text style={[styles.todayBadgeText, { color: colors.primary }]}>
+            {doneCount}/{totalToday} done
+          </Text>
         </View>
       </View>
 
@@ -272,10 +269,10 @@ export const TodayScreen: React.FC = () => {
           const displayTime = formatTime12h(timeStr);
           const status = completionMap[item.id];
           const isDone = status === 'done' || status === 'skipped';
-          const isMissed = !isDone && (() => {
-            const [h, m] = timeStr.split(':').map(Number);
-            return now.getHours() > h || (now.getHours() === h && now.getMinutes() >= m);
-          })();
+          const [ih, im] = timeStr.split(':').map(Number);
+          const isMissed = !isDone && (
+            now.getHours() > ih || (now.getHours() === ih && now.getMinutes() >= im)
+          );
 
           return (
             <View style={[
@@ -347,16 +344,24 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 8,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   date: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
   },
-  streakBadge: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginTop: 4,
+  todayBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  todayBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   progressContainer: {
     marginHorizontal: 16,

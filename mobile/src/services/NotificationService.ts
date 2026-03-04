@@ -57,7 +57,6 @@ function createNotificationChannel(): void {
       channelId: CHANNEL_ID,
       channelName: 'Reminders',
       channelDescription: 'Reminder alerts — medicine, food, exercise, and more',
-      playSound: true,
       soundName: 'default',
       importance: 5, // IMPORTANCE_HIGH
       vibrate: true,
@@ -103,7 +102,6 @@ export async function initNotifications(): Promise<void> {
             channelId: CHANNEL_ID,
             title: title || 'Reminder',
             message: body || '',
-            playSound: true,
             soundName: 'default',
             importance: 'high',
             priority: 'high',
@@ -143,7 +141,6 @@ export function scheduleLocalNotification(reminder: Reminder): void {
     message: reminder.description || buildNotificationBody(reminder),
     userInfo: { reminderId: reminder.id },
     allowWhileIdle: true,
-    playSound: true,
     soundName: 'default',
     importance: 'high',
     priority: 'high',
@@ -178,7 +175,7 @@ export function rescheduleAllNotifications(reminders: Reminder[]): void {
 
 /** Cancel notification for a single reminder */
 export function cancelNotification(reminderId: string): void {
-  PushNotification.cancelLocalNotification(String(hashCode(reminderId)));
+  PushNotification.cancelLocalNotifications({ id: String(hashCode(reminderId)) });
 }
 
 function hashCode(str: string): number {
