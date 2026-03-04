@@ -25,13 +25,13 @@ import {
 import { useTheme } from '../../theme/ThemeContext';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
-const REMINDER_TYPES: { label: string; value: ReminderType }[] = [
-  { label: 'ðŸ’Š Medicine', value: 'medicine' },
-  { label: 'ðŸŽ Food', value: 'food' },
-  { label: 'ðŸ’§ Water', value: 'water' },
-  { label: 'ðŸ˜´ Sleep', value: 'sleep' },
-  { label: 'ðŸƒ Exercise', value: 'exercise' },
-  { label: 'âœï¸ Custom', value: 'custom' },
+const REMINDER_TYPES: { label: string; emoji: string; value: ReminderType }[] = [
+  { label: 'Medicine', emoji: '\u{1F48A}', value: 'medicine' },
+  { label: 'Food',     emoji: '\u{1F34E}', value: 'food' },
+  { label: 'Water',    emoji: '\u{1F4A7}', value: 'water' },
+  { label: 'Sleep',    emoji: '\u{1F634}', value: 'sleep' },
+  { label: 'Exercise', emoji: '\u{1F3C3}', value: 'exercise' },
+  { label: 'Custom',   emoji: '\u{1F4DD}', value: 'custom' },
 ];
 
 const REPEAT_TYPES: { label: string; value: RepeatType }[] = [
@@ -70,6 +70,32 @@ export const ReminderEditScreen: React.FC = () => {
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // 12-hour time picker state
+  const [timeHour, setTimeHour] = useState(8);   // 1-12
+  const [timeMinute, setTimeMinute] = useState(0); // 0-59
+  const [timeAmPm, setTimeAmPm] = useState<'AM' | 'PM'>('AM');
+
+  /** Convert 12h picker state → 24h HH:MM string for the API */
+  function pickerTo24h(): string {
+    let h = timeHour;
+    if (timeAmPm === 'AM' && h === 12) h = 0;
+    else if (timeAmPm === 'PM' && h !== 12) h += 12;
+    return `${String(h).padStart(2, '0')}:${String(timeMinute).padStart(2, '0')}`;
+  }
+
+  /** Load 24h HH:MM string into the 12h picker state */
+  function set24hToPicker(time24: string) {
+    const [hStr, mStr] = time24.split(':');
+    let h = parseInt(hStr, 10);
+    const m = parseInt(mStr, 10) || 0;
+    const ampm: 'AM' | 'PM' = h >= 12 ? 'PM' : 'AM';
+    if (h === 0) h = 12;
+    else if (h > 12) h -= 12;
+    setTimeHour(h);
+    setTimeMinute(m);
+    setTimeAmPm(ampm);
+  }
+
   // Medicine-specific fields
   const [dosage, setDosage] = useState('');
   const [quantity, setQuantity] = useState('1');
@@ -91,7 +117,9 @@ export const ReminderEditScreen: React.FC = () => {
       setDescription(existingReminder.description || '');
       setReminderType(existingReminder.reminder_type);
       const t = existingReminder.time_of_day;
-      setTimeOfDay(t.length > 5 ? t.slice(0, 5) : t);
+      const tShort = t.length > 5 ? t.slice(0, 5) : t;
+      setTimeOfDay(tShort);
+      set24hToPicker(tShort);
       setRepeatType(existingReminder.repeat_type);
       if (
         existingReminder.custom_days &&
@@ -141,10 +169,9 @@ export const ReminderEditScreen: React.FC = () => {
       Alert.alert('Validation', 'Title is required');
       return;
     }
-    if (!/^\d{2}:\d{2}(:\d{2})?$/.test(timeOfDay)) {
-      Alert.alert('Validation', 'Time must be in HH:MM format');
-      return;
-    }
+    // Build HH:MM from picker state
+    const pickedTime = pickerTo24h();
+    setTimeOfDay(pickedTime);
 
     // Validate date fields if provided
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -167,7 +194,7 @@ export const ReminderEditScreen: React.FC = () => {
         title: title.trim(),
         description: description.trim() || undefined,
         reminder_type: reminderType,
-        time_of_day: timeOfDay.length === 5 ? timeOfDay + ':00' : timeOfDay,
+        time_of_day: pickerTo24h() + ':00',
         repeat_type: repeatType,
         custom_days:
           (repeatType === 'weekly' || repeatType === 'custom') &&
@@ -268,6 +295,7 @@ export const ReminderEditScreen: React.FC = () => {
               reminderType === t.value && styles.chipSelected,
             ]}
             onPress={() => setReminderType(t.value)}>
+            <Text style={styles.chipEmoji}>{t.emoji}</Text>
             <Text
               style={[
                 styles.chipText,
@@ -380,15 +408,46 @@ export const ReminderEditScreen: React.FC = () => {
       )}
 
       <Text style={styles.label}>Time</Text>
-      <TextInput
-        style={styles.input}
-        value={timeOfDay}
-        onChangeText={setTimeOfDay}
-        placeholder="HH:MM"
-        placeholderTextColor={colors.textTertiary}
-        keyboardType="numbers-and-punctuation"
-        maxLength={8}
-      />
+      <View style={styles.timePicker}>
+        {/* Hour spinner */}
+        <View style={styles.timeSpinner}>
+          <TouchableOpacity style={styles.timeArrow} onPress={() => setTimeHour(h => h === 12 ? 1 : h + 1)}>
+            <Text style={styles.timeArrowText}>▲</Text>
+          </TouchableOpacity>
+          <Text style={[styles.timeValue, { color: colors.text }]}>
+            {String(timeHour).padStart(2, '0')}
+          </Text>
+          <TouchableOpacity style={styles.timeArrow} onPress={() => setTimeHour(h => h === 1 ? 12 : h - 1)}>
+            <Text style={styles.timeArrowText}>▼</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={[styles.timeColon, { color: colors.text }]}>:</Text>
+        {/* Minute spinner */}
+        <View style={styles.timeSpinner}>
+          <TouchableOpacity style={styles.timeArrow} onPress={() => setTimeMinute(m => m >= 55 ? 0 : m + 5)}>
+            <Text style={styles.timeArrowText}>▲</Text>
+          </TouchableOpacity>
+          <Text style={[styles.timeValue, { color: colors.text }]}>
+            {String(timeMinute).padStart(2, '0')}
+          </Text>
+          <TouchableOpacity style={styles.timeArrow} onPress={() => setTimeMinute(m => m <= 0 ? 55 : m - 5)}>
+            <Text style={styles.timeArrowText}>▼</Text>
+          </TouchableOpacity>
+        </View>
+        {/* AM / PM toggle */}
+        <View style={styles.ampmGroup}>
+          <TouchableOpacity
+            style={[styles.ampmBtn, timeAmPm === 'AM' && { backgroundColor: colors.primary }]}
+            onPress={() => setTimeAmPm('AM')}>
+            <Text style={[styles.ampmText, timeAmPm === 'AM' && { color: '#fff' }]}>AM</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.ampmBtn, timeAmPm === 'PM' && { backgroundColor: colors.primary }]}
+            onPress={() => setTimeAmPm('PM')}>
+            <Text style={[styles.ampmText, timeAmPm === 'PM' && { color: '#fff' }]}>PM</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <Text style={styles.label}>Repeat</Text>
       <View style={styles.chipRow}>
@@ -507,16 +566,47 @@ const makeStyles = (colors: any) => StyleSheet.create({
   },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.inputBorder,
     backgroundColor: colors.surfaceAlt,
+    gap: 4,
   },
+  chipEmoji: { fontSize: 16 },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontSize: 13, color: colors.text },
   chipTextSelected: { color: '#fff', fontWeight: '600' },
+  timePicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.inputBg,
+    borderWidth: 1.5,
+    borderColor: colors.inputBorder,
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+  },
+  timeSpinner: { alignItems: 'center', minWidth: 48 },
+  timeArrow: { padding: 6 },
+  timeArrowText: { fontSize: 12, color: colors.primary, fontWeight: '700' },
+  timeValue: { fontSize: 28, fontWeight: '700', lineHeight: 34 },
+  timeColon: { fontSize: 28, fontWeight: '700', marginBottom: 4 },
+  ampmGroup: { flexDirection: 'column', marginLeft: 8, gap: 4 },
+  ampmBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: colors.inputBorder,
+    backgroundColor: colors.surfaceAlt,
+    minWidth: 52,
+    alignItems: 'center',
+  },
+  ampmText: { fontSize: 14, fontWeight: '700', color: colors.text },
   dayChip: {
     width: 42,
     height: 42,
