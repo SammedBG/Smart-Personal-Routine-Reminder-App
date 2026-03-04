@@ -6,8 +6,6 @@ import { saveTokens, clearTokens, loadTokens } from '../services/SecureStorage';
 import { getDatabase } from '../db/database';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://10.0.2.2:8000/api/v1';
-
 type LoginPayload = {
   email: string;
   password: string;
