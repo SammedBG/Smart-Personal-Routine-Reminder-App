@@ -22,12 +22,12 @@ import {
 import { useTheme } from '../../theme/ThemeContext';
 
 const TYPE_EMOJI: Record<string, string> = {
-  medicine: '💊',
-  food: '🍎',
-  water: '💧',
-  sleep: '😴',
-  exercise: '🏃',
-  custom: '📝',
+  medicine: '\u{1F48A}',
+  food: '\u{1F34E}',
+  water: '\u{1F4A7}',
+  sleep: '\u{1F634}',
+  exercise: '\u{1F3C3}',
+  custom: '\u{1F4DD}',
 };
 
 /** Convert 24-hour HH:MM string to 12-hour AM/PM format */
@@ -278,27 +278,29 @@ export const TodayScreen: React.FC = () => {
             <View style={[
               styles.card,
               { backgroundColor: colors.cardBg },
-              isDone && { backgroundColor: isDark ? '#1a2e1a' : '#f0f9f0', opacity: 0.8 },
+              isDone && { backgroundColor: isDark ? '#1a2e1a' : '#EEFAF3', opacity: 0.85 },
               isMissed && [styles.cardMissed, { borderLeftColor: colors.danger }],
             ]}>
-              <Text style={styles.emoji}>
-                {TYPE_EMOJI[item.reminder_type] || '📝'}
-              </Text>
+              <View style={[styles.emojiCircle, { backgroundColor: isDone ? (colors.success + '20') : isMissed ? (colors.danger + '15') : colors.primaryLight }]}>
+                <Text style={styles.emoji}>
+                  {TYPE_EMOJI[item.reminder_type] || '\u{1F4DD}'}
+                </Text>
+              </View>
               <View style={styles.info}>
                 <Text style={[styles.title, { color: colors.text }, isDone && { color: colors.textTertiary, textDecorationLine: 'line-through' }]}>
                   {item.title}
                 </Text>
-                <Text style={[styles.time, { color: colors.primary }]}>
+                <Text style={[styles.time, { color: isMissed ? colors.danger : colors.primary }]}>
                   {displayTime}
                   {item.reminder_type === 'medicine' && item.medicine_details?.dosage
-                    ? ` · ${item.medicine_details.dosage}`
+                    ? ` \u00B7 ${item.medicine_details.dosage}`
                     : ''}
                 </Text>
               </View>
               {isDone ? (
                 <View style={[styles.doneCheckContainer, { backgroundColor: colors.success }]}>
                   <Text style={styles.doneCheck}>
-                    {status === 'done' ? '✓' : '⏭'}
+                    {status === 'done' ? '\u2713' : '\u23ED'}
                   </Text>
                 </View>
               ) : (
@@ -308,21 +310,21 @@ export const TodayScreen: React.FC = () => {
                     onPress={() => handleAction(item, 'done')}
                     accessibilityLabel={`Mark ${item.title} as done`}
                     accessibilityRole="button">
-                    <Text style={styles.actionBtnText}>✓</Text>
+                    <Text style={styles.actionBtnText}>{'\u2713'}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.actionBtn, { backgroundColor: colors.primaryLight }]}
                     onPress={() => handleAction(item, 'skipped')}
                     accessibilityLabel={`Skip ${item.title}`}
                     accessibilityRole="button">
-                    <Text style={styles.actionBtnTextAlt}>⏭</Text>
+                    <Text style={[styles.actionBtnTextAlt, { color: colors.primary }]}>{'\u23ED'}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.actionBtn, { backgroundColor: isDark ? '#3a2800' : '#fff3e0' }]}
+                    style={[styles.actionBtn, { backgroundColor: isDark ? '#3a2800' : '#FFF3E0' }]}
                     onPress={() => handleAction(item, 'snoozed')}
                     accessibilityLabel={`Snooze ${item.title}`}
                     accessibilityRole="button">
-                    <Text style={styles.actionBtnTextAlt}>⏰</Text>
+                    <Text style={[styles.actionBtnTextAlt, { color: colors.warning }]}>{'\u{23F0}'}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -330,7 +332,7 @@ export const TodayScreen: React.FC = () => {
           );
         }}
         ListEmptyComponent={
-          <Text style={[styles.empty, { color: colors.textTertiary }]}>No reminders for today 🎉</Text>
+          <Text style={[styles.empty, { color: colors.textTertiary }]}>No reminders for today {'\u{1F389}'}</Text>
         }
       />
     </View>
@@ -342,7 +344,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 12,
     flexDirection: 'row',
@@ -351,13 +353,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   date: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
   },
   todayBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 14,
   },
   todayBadgeText: {
     fontSize: 13,
@@ -367,13 +369,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 8,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
   },
   progressRow: {
     flexDirection: 'row',
@@ -391,7 +393,7 @@ const styles = StyleSheet.create({
   progressBarBg: {
     height: 8,
     borderRadius: 4,
-    marginTop: 8,
+    marginTop: 10,
     overflow: 'hidden',
   },
   progressBarFill: {
@@ -400,25 +402,25 @@ const styles = StyleSheet.create({
   },
   progressSubtext: {
     fontSize: 12,
-    marginTop: 6,
+    marginTop: 8,
   },
   sectionHeader: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 6,
-    letterSpacing: 0.5,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 8,
+    letterSpacing: 0.8,
   },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     marginHorizontal: 16,
     marginBottom: 8,
-    borderRadius: 12,
+    borderRadius: 14,
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -427,11 +429,17 @@ const styles = StyleSheet.create({
   },
   cardMissed: {
     borderLeftWidth: 3,
-    borderLeftColor: '#e74c3c', // overridden inline when theming
+  },
+  emojiCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   emoji: {
-    fontSize: 24,
-    marginRight: 12,
+    fontSize: 20,
   },
   info: {
     flex: 1,
@@ -441,8 +449,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   time: {
-    fontSize: 13,
-    marginTop: 2,
+    fontSize: 12,
+    marginTop: 3,
     fontWeight: '500',
   },
   actionRow: {
@@ -450,34 +458,35 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   actionBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
   actionBtnText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
   },
   actionBtnTextAlt: {
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '600',
   },
   doneCheckContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
   doneCheck: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
   },
   empty: {
-    marginTop: 48,
+    marginTop: 60,
     textAlign: 'center',
     fontSize: 15,
   },

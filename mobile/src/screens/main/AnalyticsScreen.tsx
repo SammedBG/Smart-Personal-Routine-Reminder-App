@@ -175,7 +175,7 @@ export const AnalyticsScreen: React.FC = () => {
                       {r.title}
                     </Text>
                     <Text style={[styles.remTime, { color: colors.primary }]}>
-                      {fmt12h(r.time_of_day.slice(0, 5))} Â· {r.repeat_type}
+                      {fmt12h(r.time_of_day.slice(0, 5))} {'\u00B7'} {r.repeat_type}
                     </Text>
                   </View>
                   {isDone && (

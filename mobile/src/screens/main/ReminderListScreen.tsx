@@ -25,12 +25,12 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const TYPE_EMOJI: Record<string, string> = {
-  medicine: '💊',
-  food: '🍎',
-  water: '💧',
-  sleep: '😴',
-  exercise: '🏃',
-  custom: '📝',
+  medicine: '\u{1F48A}',
+  food: '\u{1F34E}',
+  water: '\u{1F4A7}',
+  sleep: '\u{1F634}',
+  exercise: '\u{1F3C3}',
+  custom: '\u{1F4DD}',
 };
 
 /** Convert 24-hour HH:MM string to 12-hour AM/PM format */
@@ -183,12 +183,12 @@ export const ReminderListScreen: React.FC = () => {
   });
 
   const TYPE_CHIPS = [
-    { key: 'medicine', label: '💊 Medicine' },
-    { key: 'food', label: '🍎 Food' },
-    { key: 'water', label: '💧 Water' },
-    { key: 'sleep', label: '😴 Sleep' },
-    { key: 'exercise', label: '🏃 Exercise' },
-    { key: 'custom', label: '📝 Custom' },
+    { key: 'medicine', label: '\u{1F48A} Medicine' },
+    { key: 'food', label: '\u{1F34E} Food' },
+    { key: 'water', label: '\u{1F4A7} Water' },
+    { key: 'sleep', label: '\u{1F634} Sleep' },
+    { key: 'exercise', label: '\u{1F3C3} Exercise' },
+    { key: 'custom', label: '\u{1F4DD} Custom' },
   ];
   const STATUS_CHIPS = [
     { key: 'all' as const, label: 'All' },
@@ -200,19 +200,22 @@ export const ReminderListScreen: React.FC = () => {
     <View style={styles.container}>
       {/* Search bar */}
       <View style={styles.searchContainer}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <View style={styles.searchInputWrap}>
-          <TextInput
-            style={styles.searchInput}
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search reminders..."
-            placeholderTextColor={colors.textTertiary}
-            returnKeyType="search"
-            clearButtonMode="while-editing"
-            accessibilityLabel="Search reminders"
-          />
-        </View>
+        <Text style={styles.searchIcon}>{'\u{1F50D}'}</Text>
+        <TextInput
+          style={styles.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search reminders..."
+          placeholderTextColor={colors.textTertiary}
+          returnKeyType="search"
+          clearButtonMode="while-editing"
+          accessibilityLabel="Search reminders"
+        />
+        {search.length > 0 && (
+          <TouchableOpacity onPress={() => setSearch('')}>
+            <Text style={{ fontSize: 16, color: colors.textTertiary }}>{'\u2715'}</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Filter chips */}
@@ -266,9 +269,11 @@ export const ReminderListScreen: React.FC = () => {
               }
               accessibilityLabel={`Edit reminder ${item.title}`}
               accessibilityRole="button">
-              <Text style={styles.emoji}>
-                {TYPE_EMOJI[item.reminder_type] || '📝'}
-              </Text>
+              <View style={[styles.emojiCircle, { backgroundColor: colors.primaryLight }]}>
+                <Text style={styles.emoji}>
+                  {TYPE_EMOJI[item.reminder_type] || '\u{1F4DD}'}
+                </Text>
+              </View>
               <View style={styles.info}>
                 <Text
                   style={[
@@ -278,15 +283,17 @@ export const ReminderListScreen: React.FC = () => {
                   {item.title}
                 </Text>
                 <Text style={styles.subtitle}>
-                  {formatTime12h(item.time_of_day.slice(0, 5))} · {item.repeat_type}
+                  {formatTime12h(item.time_of_day.slice(0, 5))} {'\u00B7'} {item.repeat_type}
                   {item.reminder_type === 'medicine' && item.medicine_details?.dosage
-                    ? ` · ${item.medicine_details.dosage}`
+                    ? ` \u00B7 ${item.medicine_details.dosage}`
                     : ''}
                 </Text>
               </View>
               <Switch
                 value={item.is_active}
                 onValueChange={() => handleToggle(item.id)}
+                trackColor={{ false: colors.border, true: colors.primary + '60' }}
+                thumbColor={item.is_active ? colors.primary : colors.textTertiary}
                 accessibilityLabel={`Toggle ${item.title} ${item.is_active ? 'off' : 'on'}`}
               />
             </TouchableOpacity>
@@ -319,80 +326,98 @@ const makeStyles = (colors: any) => StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: colors.cardBg,
+    borderRadius: 12,
+    borderWidth: 1,
     borderColor: colors.border,
   },
   searchIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  searchInputWrap: {
-    flex: 1,
+    fontSize: 15,
+    marginRight: 10,
   },
   searchInput: {
     flex: 1,
     fontSize: 15,
     color: colors.text,
-    paddingVertical: 6,
+    paddingVertical: 2,
   },
   chipBar: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    marginBottom: 4,
   },
   chipScroll: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     gap: 6,
     flexDirection: 'row',
     alignItems: 'center',
   },
   chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
     backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
     marginRight: 4,
   },
   chipActive: {
     backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   chipText: {
     fontSize: 12,
+    fontWeight: '500',
     color: colors.textSecondary,
   },
   chipTextActive: {
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   chipDivider: {
     width: 1,
     height: 20,
     backgroundColor: colors.border,
-    marginHorizontal: 4,
+    marginHorizontal: 6,
   },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 14,
+    backgroundColor: colors.cardBg,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
   },
   itemDisabled: {
     opacity: 0.5,
   },
-  emoji: {
-    fontSize: 24,
+  emojiCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 12,
+  },
+  emoji: {
+    fontSize: 20,
   },
   info: {
     flex: 1,
   },
   title: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
   },
@@ -400,9 +425,10 @@ const makeStyles = (colors: any) => StyleSheet.create({
     color: colors.textTertiary,
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textSecondary,
-    marginTop: 2,
+    marginTop: 3,
+    fontWeight: '500',
   },
   empty: {
     marginTop: 48,
@@ -415,22 +441,22 @@ const makeStyles = (colors: any) => StyleSheet.create({
     position: 'absolute',
     right: 20,
     bottom: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.27,
-    shadowRadius: 4.65,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
   },
   fabText: {
     color: '#fff',
-    fontSize: 28,
-    fontWeight: '400',
+    fontSize: 30,
+    fontWeight: '300',
     marginTop: -2,
   },
 });
