@@ -8,7 +8,7 @@ import { apiClient } from '../api/client';
 import type { Reminder } from '../store/reminderStore';
 
 const DEVICE_ID_KEY = 'device_id';
-const CHANNEL_ID = 'reminders_v2';
+const CHANNEL_ID = 'reminders_max';
 
 // Navigation ref — set from App.tsx so we can deep-link on notification tap
 let _navigationRef: any = null;
@@ -50,17 +50,18 @@ async function requestAndroidNotificationPermission(): Promise<boolean> {
   }
 }
 
-/** Create high-importance notification channel for Android 8+ */
+/** Create max-importance notification channel for Android 8+ */
 function createNotificationChannel(): void {
   PushNotification.createChannel(
     {
       channelId: CHANNEL_ID,
       channelName: 'Reminders',
-      channelDescription: 'Reminder alerts — medicine, food, exercise, and more',
+      channelDescription: 'High-priority reminder alerts — never miss a medicine, meal, workout, or event',
       soundName: 'default',
-      importance: 5, // IMPORTANCE_HIGH
+      importance: 5, // IMPORTANCE_MAX – heads-up + sound + vibrate
       vibrate: true,
-    },
+      playSound: true,
+    } as any,
     () => {},
   );
 }
@@ -103,9 +104,14 @@ export async function initNotifications(): Promise<void> {
             title: title || 'Reminder',
             message: body || '',
             soundName: 'default',
-            importance: 'high',
-            priority: 'high',
-          });
+            importance: 'max',
+            priority: 'max',
+            playSound: true,
+            visibility: 'public',
+            vibrate: true,
+            vibration: 1000,
+            autoCancel: false,
+          } as any);
         }
       });
     }
@@ -133,23 +139,27 @@ export function scheduleLocalNotification(reminder: Reminder): void {
   if (triggerDate.getTime() <= Date.now() + 5000) return;
 
   const notifId = hashCode(reminder.id);
-  const notification: PushNotificationScheduleObject = {
+  const notification = {
     channelId: CHANNEL_ID,
     id: notifId,
     date: triggerDate,
-    title: reminder.title,
+    title: `\u{1F514} ${reminder.title}`,
     message: reminder.description || buildNotificationBody(reminder),
     userInfo: { reminderId: reminder.id },
     allowWhileIdle: true,
     soundName: 'default',
-    importance: 'high',
-    priority: 'high',
+    importance: 'max',
+    priority: 'max',
+    playSound: true,
     vibrate: true,
-    vibration: 500,
+    vibration: 1000,
+    visibility: 'public',
+    autoCancel: false,
+    invokeApp: true,
     ...(reminder.repeat_type === 'daily' && { repeatType: 'day' }),
   };
 
-  PushNotification.localNotificationSchedule(notification);
+  PushNotification.localNotificationSchedule(notification as any);
   if (__DEV__) console.log(`Scheduled: "${reminder.title}" at ${triggerDate.toLocaleString()}`);
 }
 

@@ -23,6 +23,7 @@ import {
   RepeatType,
 } from '../../store/reminderStore';
 import { useTheme } from '../../theme/ThemeContext';
+import { DatePickerInline } from '../../components/DatePickerInline';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 const REMINDER_TYPES: { label: string; emoji: string; value: ReminderType }[] = [
@@ -107,9 +108,11 @@ export const ReminderEditScreen: React.FC = () => {
   const [durationMinutes, setDurationMinutes] = useState('30');
   const [intensity, setIntensity] = useState('Moderate');
 
-  // Date range fields
+  // Date fields — tapping opens calendar inline
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
 
   useEffect(() => {
     if (existingReminder) {
@@ -500,27 +503,83 @@ export const ReminderEditScreen: React.FC = () => {
         <Switch value={isActive} onValueChange={setIsActive} />
       </View>
 
-      <Text style={styles.label}>Start Date (optional, YYYY-MM-DD)</Text>
-      <TextInput
-        style={styles.input}
-        value={startDate}
-        onChangeText={setStartDate}
-        placeholder="e.g. 2025-01-15"
-        placeholderTextColor={colors.textTertiary}
-        keyboardType="numbers-and-punctuation"
-        maxLength={10}
-      />
+      {/* ── Date section ── */}
+      {repeatType === 'once' ? (
+        /* For one-time events/meetings show a single prominent date picker */
+        <View style={styles.dateSection}>
+          <Text style={styles.dateSectionTitle}>{'\u{1F4C5}'} Event Date</Text>
+          <Text style={styles.dateHint}>
+            Pick the specific date for this reminder (meeting, event, appointment, etc.)
+          </Text>
+          <TouchableOpacity
+            style={styles.dateBtn}
+            onPress={() => setShowStartPicker((v) => !v)}>
+            <Text style={styles.dateBtnIcon}>{'\u{1F4C6}'}</Text>
+            <Text style={[styles.dateBtnText, !startDate && { color: colors.textTertiary }]}>
+              {startDate || 'Tap to select a date'}
+            </Text>
+          </TouchableOpacity>
+          {showStartPicker && (
+            <DatePickerInline
+              value={startDate || null}
+              onChange={(d) => {
+                setStartDate(d);
+                if (!d) return;
+                setShowStartPicker(false);
+              }}
+              colors={colors}
+            />
+          )}
+        </View>
+      ) : (
+        /* For recurring reminders show optional start/end range */
+        <View style={styles.dateSection}>
+          <Text style={styles.dateSectionTitle}>{'\u{1F4C5}'} Schedule Range (optional)</Text>
 
-      <Text style={styles.label}>End Date (optional, YYYY-MM-DD)</Text>
-      <TextInput
-        style={styles.input}
-        value={endDate}
-        onChangeText={setEndDate}
-        placeholder="e.g. 2025-12-31"
-        placeholderTextColor={colors.textTertiary}
-        keyboardType="numbers-and-punctuation"
-        maxLength={10}
-      />
+          <TouchableOpacity
+            style={styles.dateBtn}
+            onPress={() => setShowStartPicker((v) => !v)}>
+            <Text style={styles.dateBtnIcon}>{'\u{1F4C6}'}</Text>
+            <Text style={[styles.dateBtnText, !startDate && { color: colors.textTertiary }]}>
+              {startDate ? `From: ${startDate}` : 'Start date (optional)'}
+            </Text>
+          </TouchableOpacity>
+          {showStartPicker && (
+            <DatePickerInline
+              value={startDate || null}
+              onChange={(d) => {
+                setStartDate(d);
+                if (!d) return;
+                setShowStartPicker(false);
+              }}
+              colors={colors}
+              label="Start Date"
+            />
+          )}
+
+          <TouchableOpacity
+            style={[styles.dateBtn, { marginTop: 8 }]}
+            onPress={() => setShowEndPicker((v) => !v)}>
+            <Text style={styles.dateBtnIcon}>{'\u{1F4C6}'}</Text>
+            <Text style={[styles.dateBtnText, !endDate && { color: colors.textTertiary }]}>
+              {endDate ? `Until: ${endDate}` : 'End date (optional)'}
+            </Text>
+          </TouchableOpacity>
+          {showEndPicker && (
+            <DatePickerInline
+              value={endDate || null}
+              onChange={(d) => {
+                setEndDate(d);
+                if (!d) return;
+                setShowEndPicker(false);
+              }}
+              colors={colors}
+              minDate={startDate || undefined}
+              label="End Date"
+            />
+          )}
+        </View>
+      )}
 
       <TouchableOpacity
         style={[styles.saveBtn, saving && { opacity: 0.6 }]}
@@ -656,4 +715,35 @@ const makeStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
   },
   deleteBtnText: { color: colors.danger, fontSize: 16, fontWeight: '600' },
+  dateSection: {
+    marginTop: 20,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  dateSectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.primary,
+    marginBottom: 4,
+  },
+  dateHint: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 10,
+    lineHeight: 18,
+  },
+  dateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.inputBorder,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: colors.inputBg,
+    gap: 10,
+  },
+  dateBtnIcon: { fontSize: 20 },
+  dateBtnText: { fontSize: 15, color: colors.text, fontWeight: '500' },
 });
