@@ -10,16 +10,12 @@ import { Platform } from 'react-native';
  * fallback value below for your setup.
  */
 /**
- * Use 'localhost' as default for all platforms.
+ * NOTE:
+ * This repo does not currently configure a Babel env-inlining plugin,
+ * so `process.env.API_BASE_URL` will typically be undefined in RN builds.
  *
- * For **emulator**: run  `adb reverse tcp:8000 tcp:8000`
- * For **physical device via USB**: run  `adb reverse tcp:8000 tcp:8000`
- * For **physical device via Wi-Fi**: set API_BASE_URL env var to your PC's LAN IP
- *   e.g. `http://192.168.1.100:8000/api/v1`
+ * Pick a default that works out-of-the-box for Android emulator.
  */
-const DEFAULT_API_HOST = 'localhost';
+const DEFAULT_API_HOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
 
-export const API_BASE_URL =
-  // @ts-ignore – injected via babel-plugin-transform-inline-environment-variables
-  (typeof process !== 'undefined' && process.env?.API_BASE_URL) ||
-  `http://${DEFAULT_API_HOST}:8000/api/v1`;
+export const API_BASE_URL = `http://${DEFAULT_API_HOST}:8000/api/v1`;
