@@ -10,7 +10,6 @@ const makeCompletion = (overrides: Partial<CompletionRecord> = {}): CompletionRe
   status: 'done',
   snoozed_to: null,
   date_key: '2025-01-15',
-  created_at: '2025-01-15T08:05:00Z',
   ...overrides,
 });
 
