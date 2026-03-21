@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -69,14 +69,18 @@ class CompletionService:
         await self.repo.create(record)
         return record
 
-    async def get_today_completions(self, user_id: str) -> List[CompletionRecord]:
-        today_key = date.today().strftime("%Y-%m-%d")
-        return await self.repo.list_for_date(user_id, today_key)
+    async def get_today_completions(
+        self, user_id: str, skip: int = 0, limit: int = 100
+    ) -> List[CompletionRecord]:
+        today_key = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+        return await self.repo.list_for_date(
+            user_id, today_key, skip=skip, limit=limit
+        )
 
     async def get_streak_info(
         self, user_id: str, total_today_reminders: int
     ) -> StreakInfo:
-        today = date.today()
+        today = datetime.now(timezone.utc).date()
         # Get last 30 days of data for streak computation
         start = today - timedelta(days=30)
         start_key = start.strftime("%Y-%m-%d")

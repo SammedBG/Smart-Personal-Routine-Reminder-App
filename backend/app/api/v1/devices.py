@@ -20,7 +20,7 @@ async def register_device(
 ) -> DeviceRead:
     service = DeviceService(db)
     device = await service.register_or_update(current_user.id, data)
-    return DeviceRead.from_orm(device)
+    return DeviceRead.model_validate(device)
 
 
 @router.get("/", response_model=List[DeviceRead])
@@ -30,7 +30,7 @@ async def list_devices(
 ) -> List[DeviceRead]:
     service = DeviceService(db)
     devices = await service.list_devices(current_user.id)
-    return [DeviceRead.from_orm(d) for d in devices]
+    return [DeviceRead.model_validate(d) for d in devices]
 
 
 @router.delete("/{device_id}")

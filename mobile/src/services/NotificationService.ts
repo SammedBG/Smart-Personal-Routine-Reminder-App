@@ -1,5 +1,5 @@
 import PushNotification from 'react-native-push-notification';
-import type { PushNotificationScheduleObject, ReceivedNotification } from 'react-native-push-notification';
+import type { ReceivedNotification } from 'react-native-push-notification';
 import messaging from '@react-native-firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform, PermissionsAndroid } from 'react-native';
@@ -138,7 +138,7 @@ export function scheduleLocalNotification(reminder: Reminder): void {
   const triggerDate = new Date(reminder.next_trigger_at);
   if (triggerDate.getTime() <= Date.now() + 5000) return;
 
-  const notifId = hashCode(reminder.id);
+  const notifId = stableHashCode(reminder.id);
   const notification = {
     channelId: CHANNEL_ID,
     id: notifId,
@@ -185,15 +185,18 @@ export function rescheduleAllNotifications(reminders: Reminder[]): void {
 
 /** Cancel notification for a single reminder */
 export function cancelNotification(reminderId: string): void {
-  PushNotification.cancelLocalNotifications({ id: String(hashCode(reminderId)) });
+  PushNotification.cancelLocalNotifications({ id: String(stableHashCode(reminderId)) });
 }
 
-function hashCode(str: string): number {
-  let hash = 0;
+/**
+ * FNV-1a 32-bit hash — provides much better distribution than a simple
+ * shift-and-add hash, reducing notification ID collisions (Issue #16).
+ */
+function stableHashCode(str: string): number {
+  let hash = 0x811c9dc5; // FNV offset basis
   for (let i = 0; i < str.length; i++) {
-    const ch = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + ch;
-    hash |= 0;
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193); // FNV prime
   }
-  return Math.abs(hash);
+  return Math.abs(hash | 0);
 }

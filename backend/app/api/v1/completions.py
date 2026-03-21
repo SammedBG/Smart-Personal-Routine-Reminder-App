@@ -1,7 +1,7 @@
+from datetime import date, datetime, timezone
 from typing import List
-from datetime import date
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core.dependencies import CurrentUser
@@ -26,7 +26,7 @@ async def record_completion(
 ) -> CompletionRead:
     service = CompletionService(db)
     record = await service.record_completion(str(current_user.id), data)
-    return CompletionRead.from_orm(record)
+    return CompletionRead.model_validate(record)
 
 
 @router.get(
@@ -35,10 +35,14 @@ async def record_completion(
 async def get_today_completions(
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
+    skip: int = Query(default=0, ge=0, description="Number of records to skip"),
+    limit: int = Query(default=100, ge=1, le=500, description="Max records to return"),
 ) -> List[CompletionRead]:
     service = CompletionService(db)
-    records = await service.get_today_completions(str(current_user.id))
-    return [CompletionRead.from_orm(r) for r in records]
+    records = await service.get_today_completions(
+        str(current_user.id), skip=skip, limit=limit
+    )
+    return [CompletionRead.model_validate(r) for r in records]
 
 
 @router.get(
@@ -51,7 +55,7 @@ async def get_streak_info(
     reminder_service = ReminderService(db)
     all_reminders = await reminder_service.list_reminders(current_user.id)
     # Count only reminders that are active and actually scheduled for today
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
     js_today = (today.weekday() + 1) % 7  # JS convention: 0=Sun
 
     def _is_scheduled_today(r) -> bool:

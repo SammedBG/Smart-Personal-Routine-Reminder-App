@@ -13,8 +13,10 @@ class ReminderRepository:
         self.db = db
 
     def _base_query(self, user_id: UUID) -> Select:
-        return select(Reminder).where(
-            Reminder.user_id == user_id, Reminder.deleted_at.is_(None)
+        return (
+            select(Reminder)
+            .where(Reminder.user_id == user_id, Reminder.deleted_at.is_(None))
+            .order_by(Reminder.time_of_day, Reminder.created_at)
         )
 
     async def list_for_user(
@@ -52,7 +54,11 @@ class ReminderRepository:
         self, user_id: UUID, since: Optional[datetime]
     ) -> List[Reminder]:
         # Include soft-deleted records so clients can detect server-side deletions
-        query = select(Reminder).where(Reminder.user_id == user_id)
+        query = (
+            select(Reminder)
+            .where(Reminder.user_id == user_id)
+            .order_by(Reminder.updated_at)
+        )
         if since is not None:
             query = query.where(Reminder.updated_at >= since)
         result = await self.db.execute(query)

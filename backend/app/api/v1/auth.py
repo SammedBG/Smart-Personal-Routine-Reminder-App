@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core.dependencies import CurrentUser
 from backend.app.core.security import decode_token
 from backend.app.db.session import get_db
+from backend.app.models.user import User
 from backend.app.schemas.user import (
     RefreshTokenRequest,
     TokenPair,
@@ -28,7 +30,7 @@ async def register_user(
 ) -> UserRead:
     service = AuthService(db)
     user = await service.register(data)
-    return UserRead.from_orm(user)
+    return UserRead.model_validate(user)
 
 
 @router.post("/login", response_model=TokenPair, summary="Login and obtain tokens")
@@ -51,16 +53,10 @@ async def refresh_tokens(
     user_id = payload.get("sub")
     token_version = payload.get("tv", 0)
 
-    from sqlalchemy import select
-
-    from backend.app.models.user import User
-
     # Use string comparison — User.id is String(36) in SQLite
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user or not user.is_active or user.token_version != token_version:
-        from fastapi import HTTPException, status
-
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked",

@@ -22,15 +22,19 @@ class CompletionRepository:
         return result.scalar_one_or_none()
 
     async def list_for_date(
-        self, user_id: str, date_key: str
+        self, user_id: str, date_key: str, skip: int = 0, limit: int = 100
     ) -> List[CompletionRecord]:
         result = await self.db.execute(
-            select(CompletionRecord).where(
+            select(CompletionRecord)
+            .where(
                 and_(
                     CompletionRecord.user_id == user_id,
                     CompletionRecord.date_key == date_key,
                 )
             )
+            .order_by(CompletionRecord.scheduled_at)
+            .offset(skip)
+            .limit(limit)
         )
         return list(result.scalars().all())
 

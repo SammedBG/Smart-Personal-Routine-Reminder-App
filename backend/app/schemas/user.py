@@ -25,10 +25,9 @@ class UserRead(UserBase):
     timezone: str = "UTC"
     created_at: datetime
     updated_at: datetime
-    last_login_at: Optional[datetime]
+    last_login_at: Optional[datetime] = None
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class UserUpdate(BaseModel):

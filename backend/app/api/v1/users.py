@@ -12,7 +12,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("/me", response_model=UserRead, summary="Get current user profile")
 async def get_me(current_user: CurrentUser) -> UserRead:
-    return UserRead.from_orm(current_user)
+    return UserRead.model_validate(current_user)
 
 
 @router.patch("/me", response_model=UserRead, summary="Update current user profile")
@@ -21,12 +21,12 @@ async def update_me(
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> UserRead:
-    update_data = payload.dict(exclude_unset=True)
+    update_data = payload.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(current_user, key, value)
     db.add(current_user)
     await db.flush()
-    return UserRead.from_orm(current_user)
+    return UserRead.model_validate(current_user)
 
 
 @router.post("/me/password", status_code=status.HTTP_200_OK, summary="Change password")
