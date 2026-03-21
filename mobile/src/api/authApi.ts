@@ -93,7 +93,7 @@ export async function logout(): Promise<void> {
     useReminderStore.getState().setReminders([]);
     useReminderStore.getState().setLastSyncAt(null);
     useCompletionStore.getState().setTodayCompletions([]);
-    useCompletionStore.getState().setStreak(null!);
+    useCompletionStore.getState().setStreak(null);
     await clearTokens();
     // Clear local SQLite data
     try {
