@@ -9,13 +9,13 @@ import { Platform } from 'react-native';
  * Override: set the `API_BASE_URL` environment variable or change the
  * fallback value below for your setup.
  */
-const DEFAULT_API_HOST = Platform.select({
-  android: '10.0.2.2',
-  ios: 'localhost',
-  default: 'localhost',
-});
+/**
+ * NOTE:
+ * This repo does not currently configure a Babel env-inlining plugin,
+ * so `process.env.API_BASE_URL` will typically be undefined in RN builds.
+ *
+ * Pick a default that works out-of-the-box for Android emulator.
+ */
+const DEFAULT_API_HOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
 
-export const API_BASE_URL =
-  // @ts-ignore – injected via babel-plugin-transform-inline-environment-variables
-  (typeof process !== 'undefined' && process.env?.API_BASE_URL) ||
-  `http://${DEFAULT_API_HOST}:8000/api/v1`;
+export const API_BASE_URL = `http://${DEFAULT_API_HOST}:8000/api/v1`;

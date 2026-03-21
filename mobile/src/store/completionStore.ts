@@ -6,7 +6,7 @@ type CompletionState = {
   streak: StreakInfo | null;
   setTodayCompletions: (records: CompletionRecord[]) => void;
   addCompletion: (record: CompletionRecord) => void;
-  setStreak: (info: StreakInfo) => void;
+  setStreak: (info: StreakInfo | null) => void;
 };
 
 export const useCompletionStore = create<CompletionState>((set) => ({

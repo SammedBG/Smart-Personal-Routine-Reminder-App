@@ -63,3 +63,13 @@ mobile/.expo/
 backend/smart_routines.db
 # (Note: backend/alembic/versions should usually be committed, so we don't ignore it here)
 smart_routines.db
+*.db
+
+# Firebase / Google credentials (NEVER commit service account keys)
+*-firebase-adminsdk-*.json
+smartroutines-deba3-firebase-adminsdk-fbsvc-8ae2d1c926.json
+google-services.json
+firebase-*.json
+
+# Ruff
+.ruff_cache/

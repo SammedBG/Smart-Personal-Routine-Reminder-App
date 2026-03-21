@@ -36,13 +36,14 @@ def compute_next_trigger(
             return False
         return True
 
-    if repeat_type == "daily":
-        candidate = (
-            trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
-        )
-        return candidate if _in_bounds(candidate) else None
-
     if repeat_type == "once":
+        # "once" reminders only fire if the trigger time is still in the future.
+        # They should NOT auto-advance to the next day.
+        if trigger_time > now and _in_bounds(trigger_time):
+            return trigger_time
+        return None
+
+    if repeat_type == "daily":
         candidate = (
             trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
         )
@@ -114,10 +115,10 @@ class ReminderService:
             next_trigger_at=next_trigger,
             start_date=data.start_date,
             end_date=data.end_date,
-            medicine_details=data.medicine_details.dict()
+            medicine_details=data.medicine_details.model_dump()
             if data.medicine_details
             else None,
-            exercise_details=data.exercise_details.dict()
+            exercise_details=data.exercise_details.model_dump()
             if data.exercise_details
             else None,
         )
@@ -127,11 +128,16 @@ class ReminderService:
     async def update_reminder(
         self, reminder: Reminder, data: ReminderUpdate
     ) -> Reminder:
-        update_data = data.dict(exclude_unset=True)
+        update_data = data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             # Convert nested pydantic objects to dicts for JSON columns
             if field in ("medicine_details", "exercise_details") and value is not None:
-                setattr(reminder, field, value)
+                if hasattr(value, "model_dump"):
+                    setattr(reminder, field, value.model_dump())
+                elif isinstance(value, dict):
+                    setattr(reminder, field, value)
+                else:
+                    setattr(reminder, field, value)
             else:
                 setattr(reminder, field, value)
         reminder.version += 1

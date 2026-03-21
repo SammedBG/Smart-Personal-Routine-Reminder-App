@@ -1,12 +1,12 @@
+import asyncio
 from datetime import datetime, timedelta, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from loguru import logger
 from sqlalchemy import and_, func, select
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.ext.asyncio.session import async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.config import get_settings
+from backend.app.db.session import AsyncSessionLocal
 from backend.app.models.completion import CompletionRecord, CompletionStatus
 from backend.app.models.device import Device
 from backend.app.models.reminder import Reminder, RepeatType
@@ -14,17 +14,9 @@ from backend.app.notifications.fcm import send_notification_to_devices
 from backend.app.services.reminder_service import compute_next_trigger
 
 
-settings = get_settings()
-
-engine = create_async_engine(str(settings.database_url), future=True)
-SessionLocal = async_sessionmaker(
-    autocommit=False, autoflush=False, bind=engine, expire_on_commit=False
-)
-
-
 async def process_due_reminders() -> None:
     now = datetime.now(timezone.utc)
-    async with SessionLocal() as session:  # type: AsyncSession
+    async with AsyncSessionLocal() as session:  # type: AsyncSession
         logger.debug("Checking for due reminders at {}", now)
         result = await session.execute(
             select(Reminder)
@@ -105,7 +97,7 @@ async def mark_missed_completions() -> None:
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(minutes=MISSED_GRACE_MINUTES)
 
-    async with SessionLocal() as session:
+    async with AsyncSessionLocal() as session:
         # Reminders that were triggered before the cutoff and have already
         # advanced their next_trigger_at (meaning the notification was sent).
         result = await session.execute(
@@ -169,13 +161,11 @@ def create_scheduler() -> AsyncIOScheduler:
 
 
 def main() -> None:
-    import asyncio
-
     scheduler = create_scheduler()
     scheduler.start()
     logger.info("APScheduler worker started")
     try:
-        asyncio.get_event_loop().run_forever()
+        asyncio.new_event_loop().run_forever()
     except (KeyboardInterrupt, SystemExit):
         logger.info("Scheduler shutting down")
         scheduler.shutdown()

@@ -11,6 +11,7 @@ A production-ready Smart Personal Routine Reminder System with a **FastAPI** bac
 - **Notifications** – Local notifications on device (work offline). Push notifications via Firebase Cloud Messaging (FCM); backend scheduler sends reminders when due.
 - **Multi-device** – Each device registers its FCM token; reminders are delivered to all of a user’s active devices.
 
+
 ## Architecture
 
 - **Backend**: FastAPI, PostgreSQL (SQLAlchemy async), JWT auth, Firebase Admin SDK for FCM, APScheduler worker for due-reminder checks.
@@ -104,5 +105,4 @@ See `backend/README.md`. Main ones: `POSTGRES_*`, `JWT_SECRET_KEY`, `JWT_REFRESH
 - **Mobile**: Build release (e.g. `cd mobile && npx react-native run-android --variant=release` or Xcode archive); set API base URL for production; configure FCM for production keys.
 
 ## License
-
 Private / All rights reserved (adjust as needed).

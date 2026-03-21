@@ -53,15 +53,14 @@ class ReminderUpdate(BaseModel):
 
 class ReminderRead(ReminderBase):
     id: str
-    next_trigger_at: Optional[datetime]
-    last_triggered_at: Optional[datetime]
+    next_trigger_at: Optional[datetime] = None
+    last_triggered_at: Optional[datetime] = None
     deleted_at: Optional[datetime] = None
     version: int
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class ReminderSyncPayload(BaseModel):

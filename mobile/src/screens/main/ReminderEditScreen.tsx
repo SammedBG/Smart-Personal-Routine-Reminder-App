@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -23,15 +23,16 @@ import {
   RepeatType,
 } from '../../store/reminderStore';
 import { useTheme } from '../../theme/ThemeContext';
+import { DatePickerInline } from '../../components/DatePickerInline';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
-const REMINDER_TYPES: { label: string; value: ReminderType }[] = [
-  { label: 'ðŸ’Š Medicine', value: 'medicine' },
-  { label: 'ðŸŽ Food', value: 'food' },
-  { label: 'ðŸ’§ Water', value: 'water' },
-  { label: 'ðŸ˜´ Sleep', value: 'sleep' },
-  { label: 'ðŸƒ Exercise', value: 'exercise' },
-  { label: 'âœï¸ Custom', value: 'custom' },
+const REMINDER_TYPES: { label: string; emoji: string; value: ReminderType }[] = [
+  { label: 'Medicine', emoji: '\u{1F48A}', value: 'medicine' },
+  { label: 'Food',     emoji: '\u{1F34E}', value: 'food' },
+  { label: 'Water',    emoji: '\u{1F4A7}', value: 'water' },
+  { label: 'Sleep',    emoji: '\u{1F634}', value: 'sleep' },
+  { label: 'Exercise', emoji: '\u{1F3C3}', value: 'exercise' },
+  { label: 'Custom',   emoji: '\u{1F4DD}', value: 'custom' },
 ];
 
 const REPEAT_TYPES: { label: string; value: RepeatType }[] = [
@@ -64,11 +65,37 @@ export const ReminderEditScreen: React.FC = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [reminderType, setReminderType] = useState<ReminderType>('medicine');
-  const [timeOfDay, setTimeOfDay] = useState('08:00');
+  const [_timeOfDay, setTimeOfDay] = useState('08:00');
   const [repeatType, setRepeatType] = useState<RepeatType>('daily');
   const [customDays, setCustomDays] = useState<number[]>([]);
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // 12-hour time picker state
+  const [timeHour, setTimeHour] = useState(8);   // 1-12
+  const [timeMinute, setTimeMinute] = useState(0); // 0-59
+  const [timeAmPm, setTimeAmPm] = useState<'AM' | 'PM'>('AM');
+
+  /** Convert 12h picker state → 24h HH:MM string for the API */
+  function pickerTo24h(): string {
+    let h = timeHour;
+    if (timeAmPm === 'AM' && h === 12) h = 0;
+    else if (timeAmPm === 'PM' && h !== 12) h += 12;
+    return `${String(h).padStart(2, '0')}:${String(timeMinute).padStart(2, '0')}`;
+  }
+
+  /** Load 24h HH:MM string into the 12h picker state */
+  function set24hToPicker(time24: string) {
+    const [hStr, mStr] = time24.split(':');
+    let h = parseInt(hStr, 10);
+    const m = parseInt(mStr, 10) || 0;
+    const ampm: 'AM' | 'PM' = h >= 12 ? 'PM' : 'AM';
+    if (h === 0) h = 12;
+    else if (h > 12) h -= 12;
+    setTimeHour(h);
+    setTimeMinute(m);
+    setTimeAmPm(ampm);
+  }
 
   // Medicine-specific fields
   const [dosage, setDosage] = useState('');
@@ -81,9 +108,11 @@ export const ReminderEditScreen: React.FC = () => {
   const [durationMinutes, setDurationMinutes] = useState('30');
   const [intensity, setIntensity] = useState('Moderate');
 
-  // Date range fields
+  // Date fields — tapping opens calendar inline
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
 
   useEffect(() => {
     if (existingReminder) {
@@ -91,7 +120,9 @@ export const ReminderEditScreen: React.FC = () => {
       setDescription(existingReminder.description || '');
       setReminderType(existingReminder.reminder_type);
       const t = existingReminder.time_of_day;
-      setTimeOfDay(t.length > 5 ? t.slice(0, 5) : t);
+      const tShort = t.length > 5 ? t.slice(0, 5) : t;
+      setTimeOfDay(tShort);
+      set24hToPicker(tShort);
       setRepeatType(existingReminder.repeat_type);
       if (
         existingReminder.custom_days &&
@@ -141,10 +172,9 @@ export const ReminderEditScreen: React.FC = () => {
       Alert.alert('Validation', 'Title is required');
       return;
     }
-    if (!/^\d{2}:\d{2}(:\d{2})?$/.test(timeOfDay)) {
-      Alert.alert('Validation', 'Time must be in HH:MM format');
-      return;
-    }
+    // Build HH:MM from picker state
+    const pickedTime = pickerTo24h();
+    setTimeOfDay(pickedTime);
 
     // Validate date fields if provided
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -167,7 +197,7 @@ export const ReminderEditScreen: React.FC = () => {
         title: title.trim(),
         description: description.trim() || undefined,
         reminder_type: reminderType,
-        time_of_day: timeOfDay.length === 5 ? timeOfDay + ':00' : timeOfDay,
+        time_of_day: pickerTo24h() + ':00',
         repeat_type: repeatType,
         custom_days:
           (repeatType === 'weekly' || repeatType === 'custom') &&
@@ -268,6 +298,7 @@ export const ReminderEditScreen: React.FC = () => {
               reminderType === t.value && styles.chipSelected,
             ]}
             onPress={() => setReminderType(t.value)}>
+            <Text style={styles.chipEmoji}>{t.emoji}</Text>
             <Text
               style={[
                 styles.chipText,
@@ -380,15 +411,46 @@ export const ReminderEditScreen: React.FC = () => {
       )}
 
       <Text style={styles.label}>Time</Text>
-      <TextInput
-        style={styles.input}
-        value={timeOfDay}
-        onChangeText={setTimeOfDay}
-        placeholder="HH:MM"
-        placeholderTextColor={colors.textTertiary}
-        keyboardType="numbers-and-punctuation"
-        maxLength={8}
-      />
+      <View style={styles.timePicker}>
+        {/* Hour spinner */}
+        <View style={styles.timeSpinner}>
+          <TouchableOpacity style={styles.timeArrow} onPress={() => setTimeHour(h => h === 12 ? 1 : h + 1)}>
+            <Text style={styles.timeArrowText}>▲</Text>
+          </TouchableOpacity>
+          <Text style={[styles.timeValue, { color: colors.text }]}>
+            {String(timeHour).padStart(2, '0')}
+          </Text>
+          <TouchableOpacity style={styles.timeArrow} onPress={() => setTimeHour(h => h === 1 ? 12 : h - 1)}>
+            <Text style={styles.timeArrowText}>▼</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={[styles.timeColon, { color: colors.text }]}>:</Text>
+        {/* Minute spinner */}
+        <View style={styles.timeSpinner}>
+          <TouchableOpacity style={styles.timeArrow} onPress={() => setTimeMinute(m => m >= 55 ? 0 : m + 5)}>
+            <Text style={styles.timeArrowText}>▲</Text>
+          </TouchableOpacity>
+          <Text style={[styles.timeValue, { color: colors.text }]}>
+            {String(timeMinute).padStart(2, '0')}
+          </Text>
+          <TouchableOpacity style={styles.timeArrow} onPress={() => setTimeMinute(m => m <= 0 ? 55 : m - 5)}>
+            <Text style={styles.timeArrowText}>▼</Text>
+          </TouchableOpacity>
+        </View>
+        {/* AM / PM toggle */}
+        <View style={styles.ampmGroup}>
+          <TouchableOpacity
+            style={[styles.ampmBtn, timeAmPm === 'AM' && { backgroundColor: colors.primary }]}
+            onPress={() => setTimeAmPm('AM')}>
+            <Text style={[styles.ampmText, timeAmPm === 'AM' && { color: '#fff' }]}>AM</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.ampmBtn, timeAmPm === 'PM' && { backgroundColor: colors.primary }]}
+            onPress={() => setTimeAmPm('PM')}>
+            <Text style={[styles.ampmText, timeAmPm === 'PM' && { color: '#fff' }]}>PM</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <Text style={styles.label}>Repeat</Text>
       <View style={styles.chipRow}>
@@ -441,27 +503,83 @@ export const ReminderEditScreen: React.FC = () => {
         <Switch value={isActive} onValueChange={setIsActive} />
       </View>
 
-      <Text style={styles.label}>Start Date (optional, YYYY-MM-DD)</Text>
-      <TextInput
-        style={styles.input}
-        value={startDate}
-        onChangeText={setStartDate}
-        placeholder="e.g. 2025-01-15"
-        placeholderTextColor={colors.textTertiary}
-        keyboardType="numbers-and-punctuation"
-        maxLength={10}
-      />
+      {/* ── Date section ── */}
+      {repeatType === 'once' ? (
+        /* For one-time events/meetings show a single prominent date picker */
+        <View style={styles.dateSection}>
+          <Text style={styles.dateSectionTitle}>{'\u{1F4C5}'} Event Date</Text>
+          <Text style={styles.dateHint}>
+            Pick the specific date for this reminder (meeting, event, appointment, etc.)
+          </Text>
+          <TouchableOpacity
+            style={styles.dateBtn}
+            onPress={() => setShowStartPicker((v) => !v)}>
+            <Text style={styles.dateBtnIcon}>{'\u{1F4C6}'}</Text>
+            <Text style={[styles.dateBtnText, !startDate && { color: colors.textTertiary }]}>
+              {startDate || 'Tap to select a date'}
+            </Text>
+          </TouchableOpacity>
+          {showStartPicker && (
+            <DatePickerInline
+              value={startDate || null}
+              onChange={(d) => {
+                setStartDate(d);
+                if (!d) return;
+                setShowStartPicker(false);
+              }}
+              colors={colors}
+            />
+          )}
+        </View>
+      ) : (
+        /* For recurring reminders show optional start/end range */
+        <View style={styles.dateSection}>
+          <Text style={styles.dateSectionTitle}>{'\u{1F4C5}'} Schedule Range (optional)</Text>
 
-      <Text style={styles.label}>End Date (optional, YYYY-MM-DD)</Text>
-      <TextInput
-        style={styles.input}
-        value={endDate}
-        onChangeText={setEndDate}
-        placeholder="e.g. 2025-12-31"
-        placeholderTextColor={colors.textTertiary}
-        keyboardType="numbers-and-punctuation"
-        maxLength={10}
-      />
+          <TouchableOpacity
+            style={styles.dateBtn}
+            onPress={() => setShowStartPicker((v) => !v)}>
+            <Text style={styles.dateBtnIcon}>{'\u{1F4C6}'}</Text>
+            <Text style={[styles.dateBtnText, !startDate && { color: colors.textTertiary }]}>
+              {startDate ? `From: ${startDate}` : 'Start date (optional)'}
+            </Text>
+          </TouchableOpacity>
+          {showStartPicker && (
+            <DatePickerInline
+              value={startDate || null}
+              onChange={(d) => {
+                setStartDate(d);
+                if (!d) return;
+                setShowStartPicker(false);
+              }}
+              colors={colors}
+              label="Start Date"
+            />
+          )}
+
+          <TouchableOpacity
+            style={[styles.dateBtn, { marginTop: 8 }]}
+            onPress={() => setShowEndPicker((v) => !v)}>
+            <Text style={styles.dateBtnIcon}>{'\u{1F4C6}'}</Text>
+            <Text style={[styles.dateBtnText, !endDate && { color: colors.textTertiary }]}>
+              {endDate ? `Until: ${endDate}` : 'End date (optional)'}
+            </Text>
+          </TouchableOpacity>
+          {showEndPicker && (
+            <DatePickerInline
+              value={endDate || null}
+              onChange={(d) => {
+                setEndDate(d);
+                if (!d) return;
+                setShowEndPicker(false);
+              }}
+              colors={colors}
+              minDate={startDate || undefined}
+              label="End Date"
+            />
+          )}
+        </View>
+      )}
 
       <TouchableOpacity
         style={[styles.saveBtn, saving && { opacity: 0.6 }]}
@@ -507,16 +625,47 @@ const makeStyles = (colors: any) => StyleSheet.create({
   },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.inputBorder,
     backgroundColor: colors.surfaceAlt,
+    gap: 4,
   },
+  chipEmoji: { fontSize: 16 },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontSize: 13, color: colors.text },
   chipTextSelected: { color: '#fff', fontWeight: '600' },
+  timePicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.inputBg,
+    borderWidth: 1.5,
+    borderColor: colors.inputBorder,
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+  },
+  timeSpinner: { alignItems: 'center', minWidth: 48 },
+  timeArrow: { padding: 6 },
+  timeArrowText: { fontSize: 12, color: colors.primary, fontWeight: '700' },
+  timeValue: { fontSize: 28, fontWeight: '700', lineHeight: 34 },
+  timeColon: { fontSize: 28, fontWeight: '700', marginBottom: 4 },
+  ampmGroup: { flexDirection: 'column', marginLeft: 8, gap: 4 },
+  ampmBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: colors.inputBorder,
+    backgroundColor: colors.surfaceAlt,
+    minWidth: 52,
+    alignItems: 'center',
+  },
+  ampmText: { fontSize: 14, fontWeight: '700', color: colors.text },
   dayChip: {
     width: 42,
     height: 42,
@@ -566,4 +715,35 @@ const makeStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
   },
   deleteBtnText: { color: colors.danger, fontSize: 16, fontWeight: '600' },
+  dateSection: {
+    marginTop: 20,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  dateSectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.primary,
+    marginBottom: 4,
+  },
+  dateHint: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 10,
+    lineHeight: 18,
+  },
+  dateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.inputBorder,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: colors.inputBg,
+    gap: 10,
+  },
+  dateBtnIcon: { fontSize: 20 },
+  dateBtnText: { fontSize: 15, color: colors.text, fontWeight: '500' },
 });

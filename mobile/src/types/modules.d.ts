@@ -39,6 +39,22 @@ declare module 'react-native-push-notification' {
     userInfo?: Record<string, any>;
     allowWhileIdle?: boolean;
     id?: number;
+    soundName?: string;
+    importance?: string;
+    priority?: string;
+    vibrate?: boolean;
+    vibration?: number;
+    repeatType?: 'day' | 'week' | 'month' | 'year' | 'time';
+  }
+
+  export interface PushNotificationObject {
+    channelId?: string;
+    message: string;
+    title?: string;
+    soundName?: string;
+    importance?: string;
+    priority?: string;
+    userInfo?: Record<string, any>;
   }
 
   export interface ReceivedNotification {
@@ -59,6 +75,7 @@ declare module 'react-native-push-notification' {
     channelId: string;
     channelName: string;
     channelDescription?: string;
+    soundName?: string;
     importance?: number;
     vibrate?: boolean;
   }
@@ -66,8 +83,10 @@ declare module 'react-native-push-notification' {
   interface PushNotificationStatic {
     configure(options: ConfigureOptions): void;
     createChannel(channel: ChannelOptions, callback: (created: boolean) => void): void;
+    localNotification(notification: PushNotificationObject): void;
     localNotificationSchedule(notification: PushNotificationScheduleObject): void;
     cancelAllLocalNotifications(): void;
+    cancelLocalNotifications(details: { id: string }): void;
   }
 
   const PushNotification: PushNotificationStatic;

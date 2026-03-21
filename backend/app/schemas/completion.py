@@ -18,14 +18,13 @@ class CompletionRead(BaseModel):
     reminder_id: str
     user_id: str
     scheduled_at: datetime
-    completed_at: Optional[datetime]
+    completed_at: Optional[datetime] = None
     status: CompletionStatus
-    snoozed_to: Optional[datetime]
+    snoozed_to: Optional[datetime] = None
     date_key: str
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class DailyStats(BaseModel):

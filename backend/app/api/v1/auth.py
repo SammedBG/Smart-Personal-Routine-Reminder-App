@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.core.dependencies import CurrentUser
+from backend.app.core.dependencies import AuthServiceDep, CurrentUser
 from backend.app.core.security import decode_token
 from backend.app.db.session import get_db
+from backend.app.models.user import User
 from backend.app.schemas.user import (
     RefreshTokenRequest,
     TokenPair,
@@ -24,19 +26,17 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/register", response_model=UserRead, summary="Register a new user")
 @limiter.limit("5/minute")
 async def register_user(
-    request: Request, data: UserCreate, db: AsyncSession = Depends(get_db)
+    request: Request, data: UserCreate, service: AuthServiceDep
 ) -> UserRead:
-    service = AuthService(db)
     user = await service.register(data)
-    return UserRead.from_orm(user)
+    return UserRead.model_validate(user)
 
 
 @router.post("/login", response_model=TokenPair, summary="Login and obtain tokens")
 @limiter.limit("5/minute")
 async def login(
-    request: Request, data: UserLogin, db: AsyncSession = Depends(get_db)
+    request: Request, data: UserLogin, service: AuthServiceDep
 ) -> TokenPair:
-    service = AuthService(db)
     return await service.login(data)
 
 
@@ -51,16 +51,10 @@ async def refresh_tokens(
     user_id = payload.get("sub")
     token_version = payload.get("tv", 0)
 
-    from sqlalchemy import select
-
-    from backend.app.models.user import User
-
     # Use string comparison — User.id is String(36) in SQLite
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user or not user.is_active or user.token_version != token_version:
-        from fastapi import HTTPException, status
-
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked",
@@ -71,7 +65,6 @@ async def refresh_tokens(
 
 
 @router.post("/logout", summary="Logout and revoke tokens")
-async def logout(current_user: CurrentUser, db: AsyncSession = Depends(get_db)) -> dict:
-    service = AuthService(db)
+async def logout(current_user: CurrentUser, service: AuthServiceDep) -> dict:
     await service.revoke_tokens(current_user)
     return {"detail": "Logged out"}

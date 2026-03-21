@@ -57,51 +57,77 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       <ScrollView
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled">
+        {/* Branding header */}
+        <View style={styles.brandSection}>
+          <View style={[styles.logoCircle, { backgroundColor: colors.primary }]}>
+            <Text style={styles.logoIcon}>{'\u{23F0}'}</Text>
+          </View>
+          <Text style={[styles.appName, { color: colors.text }]}>SmartRoutine</Text>
+        </View>
+
         <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
-        {error && <Text style={styles.error}>{error}</Text>}
-        <TextInput
-          style={[styles.input, { borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBg }]}
-          placeholder="Full name"
-          placeholderTextColor={colors.textSecondary}
-          value={fullName}
-          onChangeText={setFullName}
-          accessibilityLabel="Full name"
-        />
-        <TextInput
-          style={[styles.input, { borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBg }]}
-          placeholder="Email"
-          placeholderTextColor={colors.textSecondary}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-          accessibilityLabel="Email address"
-        />
-        <TextInput
-          style={[styles.input, { borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBg }]}
-          placeholder="Password"
-          placeholderTextColor={colors.textSecondary}
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          accessibilityLabel="Password"
-        />
+
+        {error && (
+          <View style={[styles.errorBox, { backgroundColor: colors.danger + '15' }]}>
+            <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>
+          </View>
+        )}
+
+        <View style={[styles.inputGroup, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+          <View style={styles.inputRow}>
+            <Text style={styles.inputIcon}>{'\u{1F464}'}</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text }]}
+              placeholder="Full name"
+              placeholderTextColor={colors.textTertiary}
+              value={fullName}
+              onChangeText={setFullName}
+              accessibilityLabel="Full name"
+            />
+          </View>
+          <View style={[styles.inputDivider, { backgroundColor: colors.border }]} />
+          <View style={styles.inputRow}>
+            <Text style={styles.inputIcon}>{'\u{2709}'}</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text }]}
+              placeholder="Email address"
+              placeholderTextColor={colors.textTertiary}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              value={email}
+              onChangeText={setEmail}
+              accessibilityLabel="Email address"
+            />
+          </View>
+          <View style={[styles.inputDivider, { backgroundColor: colors.border }]} />
+          <View style={styles.inputRow}>
+            <Text style={styles.inputIcon}>{'\u{1F512}'}</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text }]}
+              placeholder="Password (min 8 chars)"
+              placeholderTextColor={colors.textTertiary}
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              accessibilityLabel="Password"
+            />
+          </View>
+        </View>
+
         <TouchableOpacity
           style={[styles.button, { backgroundColor: colors.primary }, loading && { opacity: 0.6 }]}
           onPress={handleRegister}
           disabled={loading}
           accessibilityRole="button"
           accessibilityLabel={loading ? 'Creating account' : 'Register'}>
-          <Text style={styles.buttonText}>{loading ? 'Creating account...' : 'Register'}</Text>
+          <Text style={styles.buttonText}>{loading ? 'Creating account...' : 'Create Account'}</Text>
         </TouchableOpacity>
+
         <View style={styles.footer}>
-          <Text style={{ color: colors.textSecondary }}>Already have an account?</Text>
-          <Text
-            style={[styles.link, { color: colors.primary }]}
-            onPress={() => navigation.goBack()}
-            accessibilityRole="link">
-            Login
-          </Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 14 }}>Already have an account?</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Text style={[styles.link, { color: colors.primary }]}> Sign in</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -115,43 +141,98 @@ const styles = StyleSheet.create({
     padding: 24,
     justifyContent: 'center',
   },
-  title: {
+  brandSection: {
+    alignItems: 'center',
+    marginBottom: 28,
+  },
+  logoCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+  },
+  logoIcon: {
+    fontSize: 28,
+    color: '#fff',
+  },
+  appName: {
     fontSize: 24,
-    fontWeight: '600',
-    marginBottom: 24,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 20,
+  },
+  errorBox: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 13,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  inputGroup: {
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginBottom: 20,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+  },
+  inputIcon: {
+    fontSize: 18,
+    marginRight: 10,
+    width: 24,
     textAlign: 'center',
   },
   input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 12,
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 14,
   },
-  error: {
-    color: '#d9534f',
-    marginBottom: 8,
-    textAlign: 'center',
+  inputDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 48,
   },
   button: {
-    borderRadius: 8,
-    paddingVertical: 12,
+    borderRadius: 14,
+    paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 4,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   footer: {
-    marginTop: 16,
+    marginTop: 20,
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 4,
+    alignItems: 'center',
   },
   link: {
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 14,
   },
 });
 

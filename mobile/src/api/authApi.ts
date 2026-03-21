@@ -4,9 +4,6 @@ import { useReminderStore } from '../store/reminderStore';
 import { useCompletionStore } from '../store/completionStore';
 import { saveTokens, clearTokens, loadTokens } from '../services/SecureStorage';
 import { getDatabase } from '../db/database';
-import axios from 'axios';
-
-const API_BASE_URL = 'http://10.0.2.2:8000/api/v1';
 
 type LoginPayload = {
   email: string;
@@ -67,8 +64,9 @@ export async function restoreSessionFromStorage(): Promise<void> {
       return;
     }
     try {
-      const { data } = await axios.post<TokenPair>(`${API_BASE_URL}/auth/refresh`, null, {
-        params: { refresh_token: stored.refreshToken },
+      const { data } = await apiClient.post<TokenPair>('/auth/refresh', {
+        refresh_token: stored.refreshToken,
+      }, {
         timeout: 10000,
       });
       const user = await apiClient
@@ -95,7 +93,7 @@ export async function logout(): Promise<void> {
     useReminderStore.getState().setReminders([]);
     useReminderStore.getState().setLastSyncAt(null);
     useCompletionStore.getState().setTodayCompletions([]);
-    useCompletionStore.getState().setStreak(null as any);
+    useCompletionStore.getState().setStreak(null);
     await clearTokens();
     // Clear local SQLite data
     try {
