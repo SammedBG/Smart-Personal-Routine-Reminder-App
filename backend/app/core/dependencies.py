@@ -73,7 +73,9 @@ async def get_reminder_service(db: AsyncSession = Depends(get_db)) -> ReminderSe
     return ReminderService(db)
 
 
-async def get_completion_service(db: AsyncSession = Depends(get_db)) -> CompletionService:
+async def get_completion_service(
+    db: AsyncSession = Depends(get_db),
+) -> CompletionService:
     return CompletionService(db)
 
 

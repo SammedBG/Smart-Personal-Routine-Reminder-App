@@ -73,9 +73,7 @@ class CompletionService:
         self, user_id: str, skip: int = 0, limit: int = 100
     ) -> List[CompletionRecord]:
         today_key = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
-        return await self.repo.list_for_date(
-            user_id, today_key, skip=skip, limit=limit
-        )
+        return await self.repo.list_for_date(user_id, today_key, skip=skip, limit=limit)
 
     async def get_streak_info(
         self, user_id: str, total_today_reminders: int

@@ -6,6 +6,7 @@
  */
 
 // Exact copy of the stableHashCode function from NotificationService.ts
+/* eslint-disable no-bitwise */
 function stableHashCode(str: string): number {
   let hash = 0x811c9dc5; // FNV offset basis
   for (let i = 0; i < str.length; i++) {
@@ -14,6 +15,7 @@ function stableHashCode(str: string): number {
   }
   return Math.abs(hash | 0);
 }
+/* eslint-enable no-bitwise */
 
 describe('stableHashCode (FNV-1a)', () => {
   it('should return a positive number', () => {

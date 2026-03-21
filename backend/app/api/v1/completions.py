@@ -75,6 +75,4 @@ async def get_streak_info(
         return True
 
     total_today = sum(1 for r in all_reminders if _is_scheduled_today(r))
-    return await completion_service.get_streak_info(
-        str(current_user.id), total_today
-    )
+    return await completion_service.get_streak_info(str(current_user.id), total_today)

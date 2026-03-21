@@ -143,7 +143,7 @@ export const TodayScreen: React.FC = () => {
     if (missed.length > 0) result.push({ title: 'Missed', data: missed });
     if (completed.length > 0) result.push({ title: 'Completed', data: completed });
     return result;
-  }, [reminders, completionMap]);
+  }, [reminders, completionMap, now]);
 
   // Progress calculation
   const totalToday = useMemo(

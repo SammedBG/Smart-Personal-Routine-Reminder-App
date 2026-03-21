@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -65,7 +65,7 @@ export const ReminderEditScreen: React.FC = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [reminderType, setReminderType] = useState<ReminderType>('medicine');
-  const [timeOfDay, setTimeOfDay] = useState('08:00');
+  const [_timeOfDay, setTimeOfDay] = useState('08:00');
   const [repeatType, setRepeatType] = useState<RepeatType>('daily');
   const [customDays, setCustomDays] = useState<number[]>([]);
   const [isActive, setIsActive] = useState(true);
