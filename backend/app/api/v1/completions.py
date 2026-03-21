@@ -1,18 +1,18 @@
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from typing import List
 
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Query
 
-from backend.app.core.dependencies import CurrentUser
-from backend.app.db.session import get_db
+from backend.app.core.dependencies import (
+    CompletionServiceDep,
+    CurrentUser,
+    ReminderServiceDep,
+)
 from backend.app.schemas.completion import (
     CompletionCreate,
     CompletionRead,
     StreakInfo,
 )
-from backend.app.services.completion_service import CompletionService
-from backend.app.services.reminder_service import ReminderService
 
 
 router = APIRouter(prefix="/completions", tags=["completions"])
@@ -22,9 +22,8 @@ router = APIRouter(prefix="/completions", tags=["completions"])
 async def record_completion(
     data: CompletionCreate,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    service: CompletionServiceDep,
 ) -> CompletionRead:
-    service = CompletionService(db)
     record = await service.record_completion(str(current_user.id), data)
     return CompletionRead.model_validate(record)
 
@@ -34,11 +33,10 @@ async def record_completion(
 )
 async def get_today_completions(
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    service: CompletionServiceDep,
     skip: int = Query(default=0, ge=0, description="Number of records to skip"),
     limit: int = Query(default=100, ge=1, le=500, description="Max records to return"),
 ) -> List[CompletionRead]:
-    service = CompletionService(db)
     records = await service.get_today_completions(
         str(current_user.id), skip=skip, limit=limit
     )
@@ -50,9 +48,9 @@ async def get_today_completions(
 )
 async def get_streak_info(
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    completion_service: CompletionServiceDep,
+    reminder_service: ReminderServiceDep,
 ) -> StreakInfo:
-    reminder_service = ReminderService(db)
     all_reminders = await reminder_service.list_reminders(current_user.id)
     # Count only reminders that are active and actually scheduled for today
     today = datetime.now(timezone.utc).date()
@@ -77,5 +75,6 @@ async def get_streak_info(
         return True
 
     total_today = sum(1 for r in all_reminders if _is_scheduled_today(r))
-    service = CompletionService(db)
-    return await service.get_streak_info(str(current_user.id), total_today)
+    return await completion_service.get_streak_info(
+        str(current_user.id), total_today
+    )

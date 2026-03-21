@@ -4,7 +4,7 @@ from slowapi.util import get_remote_address
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.core.dependencies import CurrentUser
+from backend.app.core.dependencies import AuthServiceDep, CurrentUser
 from backend.app.core.security import decode_token
 from backend.app.db.session import get_db
 from backend.app.models.user import User
@@ -26,9 +26,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/register", response_model=UserRead, summary="Register a new user")
 @limiter.limit("5/minute")
 async def register_user(
-    request: Request, data: UserCreate, db: AsyncSession = Depends(get_db)
+    request: Request, data: UserCreate, service: AuthServiceDep
 ) -> UserRead:
-    service = AuthService(db)
     user = await service.register(data)
     return UserRead.model_validate(user)
 
@@ -36,9 +35,8 @@ async def register_user(
 @router.post("/login", response_model=TokenPair, summary="Login and obtain tokens")
 @limiter.limit("5/minute")
 async def login(
-    request: Request, data: UserLogin, db: AsyncSession = Depends(get_db)
+    request: Request, data: UserLogin, service: AuthServiceDep
 ) -> TokenPair:
-    service = AuthService(db)
     return await service.login(data)
 
 
@@ -67,7 +65,6 @@ async def refresh_tokens(
 
 
 @router.post("/logout", summary="Logout and revoke tokens")
-async def logout(current_user: CurrentUser, db: AsyncSession = Depends(get_db)) -> dict:
-    service = AuthService(db)
+async def logout(current_user: CurrentUser, service: AuthServiceDep) -> dict:
     await service.revoke_tokens(current_user)
     return {"detail": "Logged out"}

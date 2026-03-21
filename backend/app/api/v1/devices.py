@@ -1,12 +1,9 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, HTTPException
 
-from backend.app.core.dependencies import CurrentUser
-from backend.app.db.session import get_db
+from backend.app.core.dependencies import CurrentUser, DeviceServiceDep
 from backend.app.schemas.device import DeviceRead, DeviceRegister
-from backend.app.services.device_service import DeviceService
 
 
 router = APIRouter(prefix="/devices", tags=["devices"])
@@ -16,9 +13,8 @@ router = APIRouter(prefix="/devices", tags=["devices"])
 async def register_device(
     data: DeviceRegister,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    service: DeviceServiceDep,
 ) -> DeviceRead:
-    service = DeviceService(db)
     device = await service.register_or_update(current_user.id, data)
     return DeviceRead.model_validate(device)
 
@@ -26,9 +22,8 @@ async def register_device(
 @router.get("/", response_model=List[DeviceRead])
 async def list_devices(
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    service: DeviceServiceDep,
 ) -> List[DeviceRead]:
-    service = DeviceService(db)
     devices = await service.list_devices(current_user.id)
     return [DeviceRead.model_validate(d) for d in devices]
 
@@ -37,9 +32,8 @@ async def list_devices(
 async def remove_device(
     device_id: str,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    service: DeviceServiceDep,
 ):
-    service = DeviceService(db)
     device = await service.get_device(current_user.id, device_id)
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")

@@ -52,3 +52,36 @@ async def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+# ---------------------------------------------------------------------------
+# Service dependency factories — inject via Depends() for cleaner DI and
+# easier testing (services can be overridden in app.dependency_overrides).
+# ---------------------------------------------------------------------------
+
+from backend.app.services.auth_service import AuthService  # noqa: E402
+from backend.app.services.reminder_service import ReminderService  # noqa: E402
+from backend.app.services.completion_service import CompletionService  # noqa: E402
+from backend.app.services.device_service import DeviceService  # noqa: E402
+
+
+async def get_auth_service(db: AsyncSession = Depends(get_db)) -> AuthService:
+    return AuthService(db)
+
+
+async def get_reminder_service(db: AsyncSession = Depends(get_db)) -> ReminderService:
+    return ReminderService(db)
+
+
+async def get_completion_service(db: AsyncSession = Depends(get_db)) -> CompletionService:
+    return CompletionService(db)
+
+
+async def get_device_service(db: AsyncSession = Depends(get_db)) -> DeviceService:
+    return DeviceService(db)
+
+
+AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
+ReminderServiceDep = Annotated[ReminderService, Depends(get_reminder_service)]
+CompletionServiceDep = Annotated[CompletionService, Depends(get_completion_service)]
+DeviceServiceDep = Annotated[DeviceService, Depends(get_device_service)]
