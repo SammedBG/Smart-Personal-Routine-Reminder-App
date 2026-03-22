@@ -1,8 +1,9 @@
 import os
+import re
 from functools import lru_cache
 from typing import List, Optional
 
-from pydantic import AnyHttpUrl, Field
+from pydantic import AnyHttpUrl, Field, field_validator
 from pydantic_settings import BaseSettings
 
 # Load .env from backend/ when running from project root
@@ -26,6 +27,14 @@ class Settings(BaseSettings):
     # Database – defaults to local SQLite file; set DATABASE_URL env var to override
     database_url: str = Field(_DEFAULT_DATABASE_URL, alias="DATABASE_URL")
     sql_alchemy_echo: bool = Field(False, alias="SQLALCHEMY_ECHO")
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _fix_postgres_scheme(cls, v: str) -> str:
+        """Render/Heroku provide postgres:// URLs; SQLAlchemy needs postgresql+asyncpg://."""
+        if v and re.match(r"^postgres(ql)?://", v):
+            return re.sub(r"^postgres(ql)?://", "postgresql+asyncpg://", v)
+        return v
 
     # JWT
     jwt_secret_key: str = Field("CHANGE_ME", alias="JWT_SECRET_KEY")
