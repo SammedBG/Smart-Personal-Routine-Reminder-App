@@ -39,7 +39,7 @@ services:
     name: smartapp-scheduler
     runtime: docker
     plan: free
-    dockerfilePath: backend/Dockerfile
+    dockerfilePath: ./Dockerfile
     dockerContext: .
     dockerCommand: python -m backend.app.scheduler.apscheduler_worker
     envVars:
