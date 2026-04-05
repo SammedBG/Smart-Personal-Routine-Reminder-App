@@ -1,8 +1,9 @@
 from datetime import datetime, timezone
 from typing import List
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 
+from backend.app.api.v1.auth import limiter
 from backend.app.core.dependencies import (
     CompletionServiceDep,
     CurrentUser,
@@ -19,7 +20,9 @@ router = APIRouter(prefix="/completions", tags=["completions"])
 
 
 @router.post("/", response_model=CompletionRead, summary="Record a completion action")
+@limiter.limit("60/minute")
 async def record_completion(
+    request: Request,
     data: CompletionCreate,
     current_user: CurrentUser,
     service: CompletionServiceDep,

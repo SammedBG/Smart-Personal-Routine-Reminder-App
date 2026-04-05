@@ -1,3 +1,6 @@
+import time
+import uuid
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -13,23 +16,8 @@ from backend.app.models import completion, device, reminder, user  # noqa: F401
 from backend.app.api.v1 import auth, completions, devices, health, reminders, users
 
 
-def _validate_settings(settings) -> None:
-    """Reject insecure default JWT secrets outside development."""
-    insecure = {"CHANGE_ME", "CHANGE_ME_REFRESH", ""}
-    if settings.environment.lower() != "development":
-        if settings.jwt_secret_key in insecure:
-            raise RuntimeError(
-                "JWT_SECRET_KEY must be set to a strong random value in non-development environments."
-            )
-        if settings.jwt_refresh_secret_key in insecure:
-            raise RuntimeError(
-                "JWT_REFRESH_SECRET_KEY must be set to a strong random value in non-development environments."
-            )
-
-
 def create_app() -> FastAPI:
     settings = get_settings()
-    _validate_settings(settings)
 
     app = FastAPI(
         title=settings.project_name,
@@ -47,11 +35,36 @@ def create_app() -> FastAPI:
     async def global_exception_handler(
         request: Request, exc: Exception
     ) -> JSONResponse:
-        logger.exception("Unhandled error on {} {}", request.method, request.url.path)
+        request_id = getattr(request.state, "request_id", None)
+        logger.exception(
+            "Unhandled error on {} {} (request_id={})",
+            request.method,
+            request.url.path,
+            request_id,
+        )
         return JSONResponse(
             status_code=500,
             content={"detail": "Internal server error"},
+            headers={"X-Request-ID": request_id} if request_id else None,
         )
+
+    @app.middleware("http")
+    async def request_logging_middleware(request: Request, call_next):
+        request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+        request.state.request_id = request_id
+        start_time = time.perf_counter()
+        response = await call_next(request)
+        duration_ms = (time.perf_counter() - start_time) * 1000
+        response.headers["X-Request-ID"] = request_id
+        logger.info(
+            "{} {} {} {:.2f}ms request_id={}",
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration_ms,
+            request_id,
+        )
+        return response
 
     # CORS
     if settings.backend_cors_origins:

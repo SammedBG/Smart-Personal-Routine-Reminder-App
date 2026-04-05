@@ -1,0 +1,57 @@
+# Render Blueprint — defines all services for one-click deploy
+# Docs: https://docs.render.com/blueprint-spec
+#
+# Deploy: Push this file to your repo, then go to
+# https://dashboard.render.com/select-repo?type=blueprint
+
+databases:
+  - name: smart-routines-db
+    plan: free            # Free tier (90 days), upgrade to "starter" ($7/mo) for persistent
+    databaseName: smart_routines
+    user: smartapp
+    ipAllowList: []       # Only internal Render services can connect
+
+services:
+  # ── API Server (Web Service) ──
+  - type: web
+    name: smartapp-api
+    runtime: docker
+    plan: free            # Free tier (spins down after 15 min idle). Use "starter" ($7/mo) for always-on.
+    dockerfilePath: backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smart-routines-db
+          property: connectionString
+      - key: JWT_SECRET_KEY
+        generateValue: true       # Render auto-generates a random secret
+      - key: JWT_REFRESH_SECRET_KEY
+        generateValue: true
+      - key: ENVIRONMENT
+        value: production
+      - key: FIREBASE_CREDENTIALS_PATH
+        value: ""                 # Set manually in dashboard after deploy
+
+  # ── Scheduler Worker (Background Worker) ──
+  - type: worker
+    name: smartapp-scheduler
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: python -m backend.app.scheduler.apscheduler_worker
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smart-routines-db
+          property: connectionString
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JWT_REFRESH_SECRET_KEY
+        generateValue: true
+      - key: ENVIRONMENT
+        value: production
+      - key: FIREBASE_CREDENTIALS_PATH
+        value: ""

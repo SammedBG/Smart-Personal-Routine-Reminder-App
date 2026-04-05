@@ -34,7 +34,7 @@ class ReminderBase(BaseModel):
 
 
 class ReminderCreate(ReminderBase):
-    pass
+    idempotency_key: Optional[str] = Field(default=None, max_length=64)
 
 
 class ReminderUpdate(BaseModel):
@@ -70,3 +70,6 @@ class ReminderSyncPayload(BaseModel):
 class ReminderSyncResponse(BaseModel):
     reminders: List[ReminderRead]
     last_sync_at: datetime
+    total_count: int = 0
+    has_more: bool = False
+    server_timezone: str = Field(default="UTC", max_length=64)
