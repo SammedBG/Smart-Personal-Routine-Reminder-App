@@ -171,4 +171,6 @@ class ReminderService:
     async def list_changed_since(
         self, user_id: UUID, since: datetime | None, skip: int = 0, limit: int = 50
     ):
-        return await self.repo.list_changed_since(user_id, since, skip=skip, limit=limit)
+        return await self.repo.list_changed_since(
+            user_id, since, skip=skip, limit=limit
+        )

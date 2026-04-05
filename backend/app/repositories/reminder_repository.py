@@ -69,8 +69,10 @@ class ReminderRepository:
         if since is not None:
             base_query = base_query.where(Reminder.updated_at >= since)
 
-        count_query = select(func.count()).select_from(Reminder).where(
-            Reminder.user_id == user_id
+        count_query = (
+            select(func.count())
+            .select_from(Reminder)
+            .where(Reminder.user_id == user_id)
         )
         if since is not None:
             count_query = count_query.where(Reminder.updated_at >= since)
