@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone as dt_timezone
 from typing import List, Optional
 from uuid import UUID
 
@@ -54,7 +54,7 @@ async def sync_reminders(
     reminders, total_count = await service.list_changed_since(
         current_user.id, since, skip=skip, limit=limit
     )
-    now = datetime.now(timezone.utc)
+    now = datetime.now(dt_timezone.utc)
     has_more = (skip + limit) < total_count
     return ReminderSyncResponse(
         reminders=[ReminderRead.model_validate(r) for r in reminders],
