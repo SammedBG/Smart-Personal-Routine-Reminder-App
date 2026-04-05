@@ -3,7 +3,8 @@ import re
 from functools import lru_cache
 from typing import List, Optional
 
-from pydantic import AnyHttpUrl, Field, field_validator
+from loguru import logger
+from pydantic import AnyHttpUrl, Field, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings
 
 # Load .env from backend/ when running from project root
@@ -13,6 +14,8 @@ _ENV_FILE = os.path.join(_BACKEND_DIR, ".env")
 # Default SQLite database path (inside backend/)
 _DEFAULT_SQLITE_PATH = os.path.join(_BACKEND_DIR, "smart_routines.db")
 _DEFAULT_DATABASE_URL = f"sqlite+aiosqlite:///{_DEFAULT_SQLITE_PATH}"
+
+_INSECURE_JWT_SECRETS = {"CHANGE_ME", "CHANGE_ME_REFRESH", ""}
 
 
 class Settings(BaseSettings):
@@ -44,6 +47,26 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
+
+    @field_validator("jwt_secret_key", "jwt_refresh_secret_key")
+    @classmethod
+    def _validate_jwt_secrets(cls, v: str, info: ValidationInfo) -> str:
+        env = (info.data or {}).get("environment", "development")
+        env_var = (
+            "JWT_SECRET_KEY"
+            if info.field_name == "jwt_secret_key"
+            else "JWT_REFRESH_SECRET_KEY"
+        )
+        if env.lower() != "development" and v in _INSECURE_JWT_SECRETS:
+            raise ValueError(
+                f"{env_var} must be set to a strong random value in non-development environments."
+            )
+        if env.lower() == "development" and v in _INSECURE_JWT_SECRETS:
+            logger.warning(
+                "{} is using a default value in development; set a strong random value for production.",
+                env_var,
+            )
+        return v
 
     # CORS
     backend_cors_origins: List[AnyHttpUrl] = []

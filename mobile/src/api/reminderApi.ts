@@ -16,10 +16,15 @@ type ReminderPayload = {
   end_date?: string | null;
   medicine_details?: Record<string, unknown> | null;
   exercise_details?: Record<string, unknown> | null;
+  idempotency_key?: string;
 };
 
 function isNetworkError(e: any): boolean {
   return !e?.response && (e?.message === 'Network Error' || e?.code === 'ECONNABORTED');
+}
+
+function makeIdempotencyKey(): string {
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 export async function fetchReminders(): Promise<void> {
@@ -34,12 +39,14 @@ export async function fetchReminders(): Promise<void> {
 }
 
 export async function createReminder(payload: ReminderPayload): Promise<void> {
+  const idempotencyKey = payload.idempotency_key ?? makeIdempotencyKey();
+  const payloadWithKey = { ...payload, idempotency_key: idempotencyKey };
   try {
-    const created = await apiClient.post<Reminder>('/reminders', payload).then((r) => r.data);
+    const created = await apiClient.post<Reminder>('/reminders', payloadWithKey).then((r) => r.data);
     await upsertRemindersInDb([created]);
   } catch (e: any) {
     if (isNetworkError(e)) {
-      await enqueueChange('create', '/reminders', 'post', payload as Record<string, unknown>);
+      await enqueueChange('create', '/reminders', 'post', payloadWithKey as Record<string, unknown>);
     } else {
       throw e;
     }

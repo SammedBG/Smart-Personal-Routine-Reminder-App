@@ -8,6 +8,22 @@ import { flushPendingChanges } from '../db/offlineQueue';
 let isSyncing = false;
 let netInfoUnsubscribe: (() => void) | null = null;
 
+type SyncResponse = {
+  reminders: Reminder[];
+  last_sync_at: string;
+  total_count: number;
+  has_more: boolean;
+  server_timezone: string;
+};
+
+function getDeviceTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
+
 export async function initialLoadReminders(): Promise<void> {
   const localReminders = await loadAllRemindersFromDb();
   useReminderStore.getState().setReminders(localReminders);
@@ -16,7 +32,7 @@ export async function initialLoadReminders(): Promise<void> {
 export async function syncFromServer(): Promise<void> {
   if (isSyncing) return;
   const netState = await NetInfo.fetch();
-  if (!netState.isConnected) return;
+  if (netState.isConnected !== true) return;
 
   try {
     isSyncing = true;
@@ -25,19 +41,40 @@ export async function syncFromServer(): Promise<void> {
     await flushPendingChanges();
 
     const { lastSyncAt } = useReminderStore.getState();
-    const response = await apiClient.get<{
-      reminders: Reminder[];
-      last_sync_at: string;
-    }>('/reminders/sync', {
-      params: lastSyncAt ? { since: lastSyncAt } : undefined,
-    });
-    const updated = response.data.reminders;
-    if (updated.length) {
-      await upsertRemindersInDb(updated);
-      const all = await loadAllRemindersFromDb();
-      useReminderStore.getState().setReminders(all);
+    const since = lastSyncAt ?? undefined;
+    const timezone = getDeviceTimezone();
+    const limit = 50;
+    let skip = 0;
+    let hasMore = true;
+    let lastSyncFromServer: string | null = null;
+
+    while (hasMore) {
+      const response = await apiClient.get<SyncResponse>('/reminders/sync', {
+        params: {
+          since,
+          skip,
+          limit,
+          timezone,
+        },
+      });
+
+      const updated = response.data.reminders;
+      if (updated.length) {
+        await upsertRemindersInDb(updated);
+        const all = await loadAllRemindersFromDb();
+        useReminderStore.getState().setReminders(all);
+      }
+
+      lastSyncFromServer = response.data.last_sync_at;
+      hasMore = response.data.has_more === true;
+      skip += limit;
     }
-    useReminderStore.getState().setLastSyncAt(response.data.last_sync_at);
+
+    if (lastSyncFromServer) {
+      useReminderStore.getState().setLastSyncAt(lastSyncFromServer);
+    }
+  } catch (err) {
+    console.warn('Sync failed; will retry on next sync cycle.');
   } finally {
     isSyncing = false;
   }

@@ -96,6 +96,13 @@ class ReminderService:
         return await self.repo.get_for_user(user_id, reminder_id)
 
     async def create_reminder(self, user_id: UUID, data: ReminderCreate) -> Reminder:
+        if data.idempotency_key:
+            existing = await self.repo.get_by_idempotency_key(
+                user_id, data.idempotency_key
+            )
+            if existing:
+                return existing
+
         next_trigger = compute_next_trigger(
             data.time_of_day,
             data.repeat_type.value,
@@ -107,6 +114,7 @@ class ReminderService:
             user_id=user_id,
             title=data.title,
             description=data.description,
+            idempotency_key=data.idempotency_key,
             reminder_type=data.reminder_type,
             time_of_day=data.time_of_day,
             repeat_type=data.repeat_type,
@@ -160,5 +168,7 @@ class ReminderService:
     async def delete_reminder(self, reminder: Reminder) -> None:
         await self.repo.soft_delete(reminder)
 
-    async def list_changed_since(self, user_id: UUID, since: datetime | None):
-        return await self.repo.list_changed_since(user_id, since)
+    async def list_changed_since(
+        self, user_id: UUID, since: datetime | None, skip: int = 0, limit: int = 50
+    ):
+        return await self.repo.list_changed_since(user_id, since, skip=skip, limit=limit)

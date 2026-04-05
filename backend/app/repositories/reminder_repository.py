@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import Select, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.models.reminder import Reminder
@@ -35,6 +35,17 @@ class ReminderRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_by_idempotency_key(
+        self, user_id: UUID, idempotency_key: str
+    ) -> Optional[Reminder]:
+        result = await self.db.execute(
+            select(Reminder).where(
+                Reminder.user_id == user_id,
+                Reminder.idempotency_key == idempotency_key,
+            )
+        )
+        return result.scalar_one_or_none()
+
     async def create(self, reminder: Reminder) -> Reminder:
         self.db.add(reminder)
         await self.db.flush()
@@ -51,15 +62,21 @@ class ReminderRepository:
         await self.db.flush()
 
     async def list_changed_since(
-        self, user_id: UUID, since: Optional[datetime]
-    ) -> List[Reminder]:
+        self, user_id: UUID, since: Optional[datetime], skip: int = 0, limit: int = 50
+    ) -> tuple[List[Reminder], int]:
         # Include soft-deleted records so clients can detect server-side deletions
-        query = (
-            select(Reminder)
-            .where(Reminder.user_id == user_id)
-            .order_by(Reminder.updated_at)
+        base_query = select(Reminder).where(Reminder.user_id == user_id)
+        if since is not None:
+            base_query = base_query.where(Reminder.updated_at >= since)
+
+        count_query = select(func.count()).select_from(Reminder).where(
+            Reminder.user_id == user_id
         )
         if since is not None:
-            query = query.where(Reminder.updated_at >= since)
-        result = await self.db.execute(query)
-        return list(result.scalars().all())
+            count_query = count_query.where(Reminder.updated_at >= since)
+
+        total_count = (await self.db.execute(count_query)).scalar_one()
+        result = await self.db.execute(
+            base_query.order_by(Reminder.updated_at).offset(skip).limit(limit)
+        )
+        return list(result.scalars().all()), int(total_count)

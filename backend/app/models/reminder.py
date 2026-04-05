@@ -12,6 +12,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Index,
     Integer,
     String,
     Time,
@@ -42,6 +43,14 @@ class RepeatType(str, enum.Enum):
 
 class Reminder(TimestampMixin, Base):
     __tablename__ = "reminders"
+    __table_args__ = (
+        Index(
+            "ix_reminders_user_idempotency_key",
+            "user_id",
+            "idempotency_key",
+            unique=True,
+        ),
+    )
 
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
@@ -52,6 +61,10 @@ class Reminder(TimestampMixin, Base):
 
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(1024))
+
+    idempotency_key: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, index=True
+    )
 
     reminder_type: Mapped[ReminderType] = mapped_column(
         Enum(ReminderType, name="reminder_type"), nullable=False
