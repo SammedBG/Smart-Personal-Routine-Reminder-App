@@ -1,4 +1,4 @@
-import * as Keychain from 'react-native-keychain';
+import * as SecureStore from 'expo-secure-store';
 
 const TOKEN_KEY = 'auth_tokens';
 
@@ -8,22 +8,21 @@ type StoredTokens = {
 };
 
 export async function saveTokens(tokens: StoredTokens): Promise<void> {
-  await Keychain.setGenericPassword('auth', JSON.stringify(tokens), {
-    service: TOKEN_KEY,
-  });
+  await SecureStore.setItemAsync(TOKEN_KEY, JSON.stringify(tokens));
 }
 
 export async function loadTokens(): Promise<StoredTokens | null> {
-  const result = await Keychain.getGenericPassword({ service: TOKEN_KEY });
+  const result = await SecureStore.getItemAsync(TOKEN_KEY);
   if (!result) return null;
   try {
-    return JSON.parse(result.password) as StoredTokens;
+    return JSON.parse(result) as StoredTokens;
   } catch {
     return null;
   }
 }
 
 export async function clearTokens(): Promise<void> {
-  await Keychain.resetGenericPassword({ service: TOKEN_KEY });
+  await SecureStore.deleteItemAsync(TOKEN_KEY);
 }
+
 

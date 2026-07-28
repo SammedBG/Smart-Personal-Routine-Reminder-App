@@ -3,7 +3,9 @@
     "target": "esnext",
     "module": "esnext",
     "jsx": "react-native",
-    "lib": ["esnext"],
+    "lib": [
+      "esnext"
+    ],
     "allowJs": false,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
@@ -13,18 +15,37 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "types": ["jest", "react-native"],
+    "types": [
+      "jest",
+      "react-native"
+    ],
     "baseUrl": "./src",
     "paths": {
-      "@api/*": ["api/*"],
-      "@store/*": ["store/*"],
-      "@screens/*": ["screens/*"],
-      "@components/*": ["components/*"],
-      "@services/*": ["services/*"],
-      "@db/*": ["db/*"],
-      "@utils/*": ["utils/*"]
+      "@api/*": [
+        "api/*"
+      ],
+      "@store/*": [
+        "store/*"
+      ],
+      "@screens/*": [
+        "screens/*"
+      ],
+      "@components/*": [
+        "components/*"
+      ],
+      "@services/*": [
+        "services/*"
+      ],
+      "@db/*": [
+        "db/*"
+      ],
+      "@utils/*": [
+        "utils/*"
+      ]
     }
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ],
+  "extends": "expo/tsconfig.base"
 }
-

@@ -1,19 +1,17 @@
-import SQLite, { SQLiteDatabase } from 'react-native-sqlite-storage';
-
-SQLite.enablePromise(true);
+import * as SQLite from 'expo-sqlite';
 
 const DB_NAME = 'smart_routines.db';
 
-let dbInstance: SQLiteDatabase | null = null;
+let dbInstance: any = null;
 
-export async function getDatabase(): Promise<SQLiteDatabase> {
+export async function getDatabase(): Promise<any> {
   if (dbInstance) return dbInstance;
-  dbInstance = await SQLite.openDatabase({ name: DB_NAME, location: 'default' });
+  dbInstance = await SQLite.openDatabaseAsync(DB_NAME);
 
   // Enable WAL mode for better concurrent performance
-  await dbInstance.executeSql('PRAGMA journal_mode=WAL;');
+  await dbInstance.execAsync('PRAGMA journal_mode=WAL;');
 
-  await dbInstance.executeSql(`
+  await dbInstance.execAsync(`
     CREATE TABLE IF NOT EXISTS reminders (
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
@@ -39,7 +37,7 @@ export async function getDatabase(): Promise<SQLiteDatabase> {
   // Add new columns if upgrading from older schema (gracefully ignore if exists)
   const addColumnSafely = async (col: string, type: string) => {
     try {
-      await dbInstance!.executeSql(`ALTER TABLE reminders ADD COLUMN ${col} ${type};`);
+      await dbInstance.execAsync(`ALTER TABLE reminders ADD COLUMN ${col} ${type};`);
     } catch {
       // column already exists, ignore
     }
@@ -49,7 +47,7 @@ export async function getDatabase(): Promise<SQLiteDatabase> {
   await addColumnSafely('medicine_details', 'TEXT');
   await addColumnSafely('exercise_details', 'TEXT');
 
-  await dbInstance.executeSql(`
+  await dbInstance.execAsync(`
     CREATE TABLE IF NOT EXISTS pending_changes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       operation TEXT NOT NULL,
@@ -58,4 +56,5 @@ export async function getDatabase(): Promise<SQLiteDatabase> {
   `);
   return dbInstance;
 }
+
 

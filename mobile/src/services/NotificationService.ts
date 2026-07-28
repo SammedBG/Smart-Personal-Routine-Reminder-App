@@ -1,14 +1,20 @@
-import PushNotification from 'react-native-push-notification';
-import type { ReceivedNotification } from 'react-native-push-notification';
-import messaging from '@react-native-firebase/messaging';
+import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform, PermissionsAndroid } from 'react-native';
+import { Platform } from 'react-native';
 
 import { apiClient } from '../api/client';
 import type { Reminder } from '../store/reminderStore';
 
 const DEVICE_ID_KEY = 'device_id';
 const CHANNEL_ID = 'reminders_max';
+
+function getMessaging(): any {
+  try {
+    return require('@react-native-firebase/messaging').default;
+  } catch {
+    return null;
+  }
+}
 
 // Navigation ref — set from App.tsx so we can deep-link on notification tap
 let _navigationRef: any = null;
@@ -30,88 +36,64 @@ async function getOrCreateDeviceId(): Promise<string> {
   return id;
 }
 
-/** Request POST_NOTIFICATIONS permission on Android 13+ */
-async function requestAndroidNotificationPermission(): Promise<boolean> {
-  if (Platform.OS !== 'android') return true;
-  if (Platform.Version < 33) return true;
-  try {
-    const result = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-      {
-        title: 'Notification Permission',
-        message: 'SmartRoutine needs permission to send you reminder notifications.',
-        buttonPositive: 'Allow',
-        buttonNegative: 'Deny',
-      },
-    );
-    return result === PermissionsAndroid.RESULTS.GRANTED;
-  } catch {
-    return false;
+// Set foreground notification handler behavior
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
+/** Create max-importance notification channel for Android */
+async function createNotificationChannel(): Promise<void> {
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+      name: 'Reminders',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      sound: 'default',
+      lightColor: '#FF2366',
+    });
   }
 }
 
-/** Create max-importance notification channel for Android 8+ */
-function createNotificationChannel(): void {
-  PushNotification.createChannel(
-    {
-      channelId: CHANNEL_ID,
-      channelName: 'Reminders',
-      channelDescription: 'High-priority reminder alerts — never miss a medicine, meal, workout, or event',
-      soundName: 'default',
-      importance: 5, // IMPORTANCE_MAX – heads-up + sound + vibrate
-      vibrate: true,
-      playSound: true,
-    } as any,
-    () => {},
-  );
-}
-
 export async function initNotifications(): Promise<void> {
-  await requestAndroidNotificationPermission();
-  createNotificationChannel();
+  await Notifications.requestPermissionsAsync({
+    ios: { allowAlert: true, allowBadge: true, allowSound: true },
+  });
+  await createNotificationChannel();
 
-  PushNotification.configure({
-    onRegister: () => {},
-    onNotification: (notification: ReceivedNotification) => {
-      const reminderId = notification?.data?.reminderId;
-      if (reminderId && _navigationRef?.isReady?.()) {
-        _navigationRef.navigate('ReminderEdit', { reminderId });
-      }
-      if (typeof notification.finish === 'function') {
-        notification.finish('UIBackgroundFetchResultNoData' as any);
-      }
-    },
-    permissions: { alert: true, badge: true, sound: true },
-    popInitialNotification: true,
-    requestPermissions: Platform.OS === 'ios',
+  Notifications.addNotificationResponseReceivedListener((response) => {
+    const reminderId = response.notification.request.content.data?.reminderId;
+    if (reminderId && _navigationRef?.isReady?.()) {
+      _navigationRef.navigate('ReminderEdit', { reminderId });
+    }
   });
 
   try {
-    const authStatus = await messaging().requestPermission();
+    const messaging = getMessaging();
+    if (!messaging) return;
+    const instance = messaging();
+    const authStatus = await instance.requestPermission();
     const enabled =
-      authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-      authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      authStatus === instance.AuthorizationStatus?.AUTHORIZED ||
+      authStatus === instance.AuthorizationStatus?.PROVISIONAL;
     if (enabled) {
-      const fcmToken = await messaging().getToken();
+      const fcmToken = await instance.getToken();
       await registerDeviceWithBackend(fcmToken);
-      messaging().onTokenRefresh(async (token) => { await registerDeviceWithBackend(token); });
-      // Show FCM messages while app is in foreground as local notifications
-      messaging().onMessage(async (remoteMessage) => {
+      instance.onTokenRefresh(async (token: string) => { await registerDeviceWithBackend(token); });
+      instance.onMessage(async (remoteMessage: any) => {
         const { title, body } = remoteMessage.notification || {};
         if (title || body) {
-          PushNotification.localNotification({
-            channelId: CHANNEL_ID,
-            title: title || 'Reminder',
-            message: body || '',
-            soundName: 'default',
-            importance: 'max',
-            priority: 'max',
-            playSound: true,
-            visibility: 'public',
-            vibrate: true,
-            vibration: 1000,
-            autoCancel: false,
-          } as any);
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: title || 'Reminder',
+              body: body || '',
+              sound: true,
+            },
+            trigger: null, // immediate
+          });
         }
       });
     }
@@ -133,33 +115,27 @@ async function registerDeviceWithBackend(fcmToken: string): Promise<void> {
 }
 
 /** Schedule a local notification for a single reminder */
-export function scheduleLocalNotification(reminder: Reminder): void {
+export async function scheduleLocalNotification(reminder: Reminder): Promise<void> {
   if (!reminder.next_trigger_at || !reminder.is_active) return;
   const triggerDate = new Date(reminder.next_trigger_at);
   if (triggerDate.getTime() <= Date.now() + 5000) return;
 
-  const notifId = stableHashCode(reminder.id);
-  const notification = {
-    channelId: CHANNEL_ID,
-    id: notifId,
-    date: triggerDate,
-    title: `\u{1F514} ${reminder.title}`,
-    message: reminder.description || buildNotificationBody(reminder),
-    userInfo: { reminderId: reminder.id },
-    allowWhileIdle: true,
-    soundName: 'default',
-    importance: 'max',
-    priority: 'max',
-    playSound: true,
-    vibrate: true,
-    vibration: 1000,
-    visibility: 'public',
-    autoCancel: false,
-    invokeApp: true,
-    ...(reminder.repeat_type === 'daily' && { repeatType: 'day' }),
-  };
+  const notifId = String(stableHashCode(reminder.id));
 
-  PushNotification.localNotificationSchedule(notification as any);
+  await Notifications.scheduleNotificationAsync({
+    identifier: notifId,
+    content: {
+      title: `\u{1F514} ${reminder.title}`,
+      body: reminder.description || buildNotificationBody(reminder),
+      data: { reminderId: reminder.id },
+      sound: 'default',
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: triggerDate,
+    } as any,
+  });
+
   if (__DEV__) console.log(`Scheduled: "${reminder.title}" at ${triggerDate.toLocaleString()}`);
 }
 
@@ -178,21 +154,24 @@ function buildNotificationBody(reminder: Reminder): string {
 }
 
 /** Cancel all scheduled notifications and re-schedule all active ones */
-export function rescheduleAllNotifications(reminders: Reminder[]): void {
-  PushNotification.cancelAllLocalNotifications();
-  reminders.filter((r) => r.is_active && r.next_trigger_at).forEach(scheduleLocalNotification);
+export async function rescheduleAllNotifications(reminders: Reminder[]): Promise<void> {
+  await Notifications.cancelAllScheduledNotificationsAsync();
+  for (const r of reminders.filter((r) => r.is_active && r.next_trigger_at)) {
+    await scheduleLocalNotification(r);
+  }
 }
 
 /** Cancel notification for a single reminder */
-export function cancelNotification(reminderId: string): void {
-  PushNotification.cancelLocalNotifications({ id: String(stableHashCode(reminderId)) });
+export async function cancelNotification(reminderId: string): Promise<void> {
+  const notifId = String(stableHashCode(reminderId));
+  await Notifications.cancelScheduledNotificationAsync(notifId);
 }
 
 /**
  * FNV-1a 32-bit hash — provides much better distribution than a simple
  * shift-and-add hash, reducing notification ID collisions (Issue #16).
  */
-function stableHashCode(str: string): number {
+export function stableHashCode(str: string): number {
   let hash = 0x811c9dc5; // FNV offset basis
   for (let i = 0; i < str.length; i++) {
     hash ^= str.charCodeAt(i);
@@ -200,3 +179,4 @@ function stableHashCode(str: string): number {
   }
   return Math.abs(hash | 0);
 }
+
