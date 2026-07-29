@@ -1,4 +1,26 @@
 {
-  "name": "SmartRoutineTemp",
-  "displayName": "Smart Routine Reminder"
+  "expo": {
+    "name": "Smart Routine Reminder",
+    "slug": "smart-routine-reminder",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.smartroutinereminder.app"
+    },
+    "android": {
+      "package": "com.smartroutinereminder.app",
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      "expo-notifications",
+      "expo-sqlite",
+      "expo-secure-store"
+    ]
+  }
 }

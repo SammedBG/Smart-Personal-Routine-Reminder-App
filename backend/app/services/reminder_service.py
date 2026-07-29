@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,7 +16,7 @@ def compute_next_trigger(
     end_date: date | None = None,
 ) -> datetime | None:
     """Compute the next trigger datetime based on the reminder schedule."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     today = now.date()
 
     # If end_date is in the past, no more triggers
@@ -25,16 +25,14 @@ def compute_next_trigger(
 
     # Earliest allowed date
     effective_today = max(today, start_date) if start_date else today
-    trigger_time = datetime.combine(effective_today, time_of_day, tzinfo=timezone.utc)
+    trigger_time = datetime.combine(effective_today, time_of_day, tzinfo=UTC)
 
     # Helper: check candidate is within date bounds
     def _in_bounds(dt: datetime) -> bool:
         d = dt.date()
         if start_date and d < start_date:
             return False
-        if end_date and d > end_date:
-            return False
-        return True
+        return not (end_date and d > end_date)
 
     if repeat_type == "once":
         # "once" reminders only fire if the trigger time is still in the future.
@@ -44,17 +42,13 @@ def compute_next_trigger(
         return None
 
     if repeat_type == "daily":
-        candidate = (
-            trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
-        )
+        candidate = trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
         return candidate if _in_bounds(candidate) else None
 
     if repeat_type in ("weekly", "custom") and custom_days:
         days = custom_days.get("days", [])
         if not days:
-            candidate = (
-                trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
-            )
+            candidate = trigger_time if trigger_time > now else trigger_time + timedelta(days=1)
             return candidate if _in_bounds(candidate) else None
 
         # days list uses: 0=Sun,1=Mon,...,6=Sat  (JS convention)
@@ -62,9 +56,8 @@ def compute_next_trigger(
         js_today = (effective_today.weekday() + 1) % 7
 
         # Check if effective_today is a scheduled day and trigger time is still in the future
-        if js_today in days and trigger_time > now:
-            if _in_bounds(trigger_time):
-                return trigger_time
+        if js_today in days and trigger_time > now and _in_bounds(trigger_time):
+            return trigger_time
 
         # Find the next scheduled day
         for offset in range(1, 8):
@@ -73,7 +66,7 @@ def compute_next_trigger(
                 candidate = datetime.combine(
                     effective_today + timedelta(days=offset),
                     time_of_day,
-                    tzinfo=timezone.utc,
+                    tzinfo=UTC,
                 )
                 if _in_bounds(candidate):
                     return candidate
@@ -97,9 +90,7 @@ class ReminderService:
 
     async def create_reminder(self, user_id: UUID, data: ReminderCreate) -> Reminder:
         if data.idempotency_key:
-            existing = await self.repo.get_by_idempotency_key(
-                user_id, data.idempotency_key
-            )
+            existing = await self.repo.get_by_idempotency_key(user_id, data.idempotency_key)
             if existing:
                 return existing
 
@@ -123,19 +114,13 @@ class ReminderService:
             next_trigger_at=next_trigger,
             start_date=data.start_date,
             end_date=data.end_date,
-            medicine_details=data.medicine_details.model_dump()
-            if data.medicine_details
-            else None,
-            exercise_details=data.exercise_details.model_dump()
-            if data.exercise_details
-            else None,
+            medicine_details=data.medicine_details.model_dump() if data.medicine_details else None,
+            exercise_details=data.exercise_details.model_dump() if data.exercise_details else None,
         )
         await self.repo.create(reminder)
         return reminder
 
-    async def update_reminder(
-        self, reminder: Reminder, data: ReminderUpdate
-    ) -> Reminder:
+    async def update_reminder(self, reminder: Reminder, data: ReminderUpdate) -> Reminder:
         update_data = data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             # Convert nested pydantic objects to dicts for JSON columns
@@ -149,7 +134,7 @@ class ReminderService:
             else:
                 setattr(reminder, field, value)
         reminder.version += 1
-        reminder.updated_at = datetime.now(timezone.utc)
+        reminder.updated_at = datetime.now(UTC)
 
         # Recompute next_trigger_at if schedule-related fields changed
         reminder.next_trigger_at = compute_next_trigger(
@@ -171,6 +156,4 @@ class ReminderService:
     async def list_changed_since(
         self, user_id: UUID, since: datetime | None, skip: int = 0, limit: int = 50
     ):
-        return await self.repo.list_changed_since(
-            user_id, since, skip=skip, limit=limit
-        )
+        return await self.repo.list_changed_since(user_id, since, skip=skip, limit=limit)

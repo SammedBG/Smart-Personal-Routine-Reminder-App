@@ -25,24 +25,18 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", response_model=UserRead, summary="Register a new user")
 @limiter.limit("5/minute")
-async def register_user(
-    request: Request, data: UserCreate, service: AuthServiceDep
-) -> UserRead:
+async def register_user(request: Request, data: UserCreate, service: AuthServiceDep) -> UserRead:
     user = await service.register(data)
     return UserRead.model_validate(user)
 
 
 @router.post("/login", response_model=TokenPair, summary="Login and obtain tokens")
 @limiter.limit("5/minute")
-async def login(
-    request: Request, data: UserLogin, service: AuthServiceDep
-) -> TokenPair:
+async def login(request: Request, data: UserLogin, service: AuthServiceDep) -> TokenPair:
     return await service.login(data)
 
 
-@router.post(
-    "/refresh", response_model=TokenPair, summary="Refresh access and refresh tokens"
-)
+@router.post("/refresh", response_model=TokenPair, summary="Refresh access and refresh tokens")
 @limiter.limit("10/minute")
 async def refresh_tokens(
     request: Request, data: RefreshTokenRequest, db: AsyncSession = Depends(get_db)

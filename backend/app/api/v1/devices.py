@@ -5,7 +5,6 @@ from fastapi import APIRouter, HTTPException
 from backend.app.core.dependencies import CurrentUser, DeviceServiceDep
 from backend.app.schemas.device import DeviceRead, DeviceRegister
 
-
 router = APIRouter(prefix="/devices", tags=["devices"])
 
 

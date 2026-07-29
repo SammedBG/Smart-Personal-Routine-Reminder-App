@@ -1,14 +1,38 @@
-import PushNotification from 'react-native-push-notification';
-import type { ReceivedNotification } from 'react-native-push-notification';
-import messaging from '@react-native-firebase/messaging';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform, PermissionsAndroid } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 import { apiClient } from '../api/client';
 import type { Reminder } from '../store/reminderStore';
 
+// Expo Go removed native push/local notification support in SDK 53+.
+// We detect Expo Go so we can use an in-app timer fallback when running in Expo Go,
+// while preserving full native notifications for standalone/development builds.
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+// Lazy-load expo-notifications only when NOT in Expo Go
+function getNotifications(): typeof import('expo-notifications') | null {
+  if (isExpoGo) return null;
+  try {
+    return require('expo-notifications');
+  } catch {
+    return null;
+  }
+}
+
 const DEVICE_ID_KEY = 'device_id';
 const CHANNEL_ID = 'reminders_max';
+
+// Store in-app fallback timers when running inside Expo Go
+const activeTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function getMessaging(): any {
+  try {
+    return require('@react-native-firebase/messaging').default;
+  } catch {
+    return null;
+  }
+}
 
 // Navigation ref — set from App.tsx so we can deep-link on notification tap
 let _navigationRef: any = null;
@@ -30,88 +54,74 @@ async function getOrCreateDeviceId(): Promise<string> {
   return id;
 }
 
-/** Request POST_NOTIFICATIONS permission on Android 13+ */
-async function requestAndroidNotificationPermission(): Promise<boolean> {
-  if (Platform.OS !== 'android') return true;
-  if (Platform.Version < 33) return true;
-  try {
-    const result = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-      {
-        title: 'Notification Permission',
-        message: 'SmartRoutine needs permission to send you reminder notifications.',
-        buttonPositive: 'Allow',
-        buttonNegative: 'Deny',
-      },
-    );
-    return result === PermissionsAndroid.RESULTS.GRANTED;
-  } catch {
-    return false;
+// Set foreground notification handler behavior (lazy, skipped in Expo Go)
+const Notifications = getNotifications();
+if (Notifications) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
+
+/** Create max-importance notification channel for Android */
+async function createNotificationChannel(): Promise<void> {
+  if (Platform.OS === 'android' && Notifications) {
+    await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+      name: 'Reminders',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      sound: 'default',
+      lightColor: '#FF2366',
+    });
   }
 }
 
-/** Create max-importance notification channel for Android 8+ */
-function createNotificationChannel(): void {
-  PushNotification.createChannel(
-    {
-      channelId: CHANNEL_ID,
-      channelName: 'Reminders',
-      channelDescription: 'High-priority reminder alerts — never miss a medicine, meal, workout, or event',
-      soundName: 'default',
-      importance: 5, // IMPORTANCE_MAX – heads-up + sound + vibrate
-      vibrate: true,
-      playSound: true,
-    } as any,
-    () => {},
-  );
-}
-
 export async function initNotifications(): Promise<void> {
-  await requestAndroidNotificationPermission();
-  createNotificationChannel();
+  if (!Notifications) {
+    if (__DEV__) console.log('Running in Expo Go — using in-app reminder fallback (native notifications require Development Build)');
+    return;
+  }
 
-  PushNotification.configure({
-    onRegister: () => {},
-    onNotification: (notification: ReceivedNotification) => {
-      const reminderId = notification?.data?.reminderId;
-      if (reminderId && _navigationRef?.isReady?.()) {
-        _navigationRef.navigate('ReminderEdit', { reminderId });
-      }
-      if (typeof notification.finish === 'function') {
-        notification.finish('UIBackgroundFetchResultNoData' as any);
-      }
-    },
-    permissions: { alert: true, badge: true, sound: true },
-    popInitialNotification: true,
-    requestPermissions: Platform.OS === 'ios',
+  await Notifications.requestPermissionsAsync({
+    ios: { allowAlert: true, allowBadge: true, allowSound: true },
+  });
+  await createNotificationChannel();
+
+  Notifications.addNotificationResponseReceivedListener((response) => {
+    const reminderId = response.notification.request.content.data?.reminderId;
+    if (reminderId && _navigationRef?.isReady?.()) {
+      _navigationRef.navigate('ReminderEdit', { reminderId });
+    }
   });
 
   try {
-    const authStatus = await messaging().requestPermission();
+    const messaging = getMessaging();
+    if (!messaging) return;
+    const instance = messaging();
+    const authStatus = await instance.requestPermission();
     const enabled =
-      authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-      authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      authStatus === instance.AuthorizationStatus?.AUTHORIZED ||
+      authStatus === instance.AuthorizationStatus?.PROVISIONAL;
     if (enabled) {
-      const fcmToken = await messaging().getToken();
+      const fcmToken = await instance.getToken();
       await registerDeviceWithBackend(fcmToken);
-      messaging().onTokenRefresh(async (token) => { await registerDeviceWithBackend(token); });
-      // Show FCM messages while app is in foreground as local notifications
-      messaging().onMessage(async (remoteMessage) => {
+      instance.onTokenRefresh(async (token: string) => { await registerDeviceWithBackend(token); });
+      instance.onMessage(async (remoteMessage: any) => {
         const { title, body } = remoteMessage.notification || {};
         if (title || body) {
-          PushNotification.localNotification({
-            channelId: CHANNEL_ID,
-            title: title || 'Reminder',
-            message: body || '',
-            soundName: 'default',
-            importance: 'max',
-            priority: 'max',
-            playSound: true,
-            visibility: 'public',
-            vibrate: true,
-            vibration: 1000,
-            autoCancel: false,
-          } as any);
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: title || 'Reminder',
+              body: body || '',
+              sound: true,
+            },
+            trigger: null, // immediate
+          });
         }
       });
     }
@@ -133,34 +143,53 @@ async function registerDeviceWithBackend(fcmToken: string): Promise<void> {
 }
 
 /** Schedule a local notification for a single reminder */
-export function scheduleLocalNotification(reminder: Reminder): void {
+export async function scheduleLocalNotification(reminder: Reminder): Promise<void> {
   if (!reminder.next_trigger_at || !reminder.is_active) return;
   const triggerDate = new Date(reminder.next_trigger_at);
-  if (triggerDate.getTime() <= Date.now() + 5000) return;
+  const delayMs = triggerDate.getTime() - Date.now();
+  if (delayMs <= 1000) return;
 
-  const notifId = stableHashCode(reminder.id);
-  const notification = {
-    channelId: CHANNEL_ID,
-    id: notifId,
-    date: triggerDate,
-    title: `\u{1F514} ${reminder.title}`,
-    message: reminder.description || buildNotificationBody(reminder),
-    userInfo: { reminderId: reminder.id },
-    allowWhileIdle: true,
-    soundName: 'default',
-    importance: 'max',
-    priority: 'max',
-    playSound: true,
-    vibrate: true,
-    vibration: 1000,
-    visibility: 'public',
-    autoCancel: false,
-    invokeApp: true,
-    ...(reminder.repeat_type === 'daily' && { repeatType: 'day' }),
-  };
+  // In Expo Go (SDK 53+), native notification APIs are excluded from the binary.
+  // Use in-app Alert timers so reminders still pop up on screen during Expo Go testing!
+  if (isExpoGo || !Notifications) {
+    if (activeTimers.has(reminder.id)) {
+      clearTimeout(activeTimers.get(reminder.id)!);
+    }
+    if (delayMs < 24 * 60 * 60 * 1000) { // schedule if within 24 hours
+      const timer = setTimeout(() => {
+        Alert.alert(
+          `\u{1F514} Reminder: ${reminder.title}`,
+          reminder.description || buildNotificationBody(reminder),
+          [{ text: 'OK' }]
+        );
+        activeTimers.delete(reminder.id);
+      }, delayMs);
+      activeTimers.set(reminder.id, timer);
+      if (__DEV__) {
+        console.log(`[Expo Go Fallback] In-app alert scheduled for "${reminder.title}" in ${Math.round(delayMs / 1000)}s`);
+      }
+    }
+    return;
+  }
 
-  PushNotification.localNotificationSchedule(notification as any);
-  if (__DEV__) console.log(`Scheduled: "${reminder.title}" at ${triggerDate.toLocaleString()}`);
+  // Native notification scheduling for standalone / development builds
+  const notifId = String(stableHashCode(reminder.id));
+
+  await Notifications.scheduleNotificationAsync({
+    identifier: notifId,
+    content: {
+      title: `\u{1F514} ${reminder.title}`,
+      body: reminder.description || buildNotificationBody(reminder),
+      data: { reminderId: reminder.id },
+      sound: 'default',
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: triggerDate,
+    } as any,
+  });
+
+  if (__DEV__) console.log(`Scheduled native notification: "${reminder.title}" at ${triggerDate.toLocaleString()}`);
 }
 
 function buildNotificationBody(reminder: Reminder): string {
@@ -178,21 +207,40 @@ function buildNotificationBody(reminder: Reminder): string {
 }
 
 /** Cancel all scheduled notifications and re-schedule all active ones */
-export function rescheduleAllNotifications(reminders: Reminder[]): void {
-  PushNotification.cancelAllLocalNotifications();
-  reminders.filter((r) => r.is_active && r.next_trigger_at).forEach(scheduleLocalNotification);
+export async function rescheduleAllNotifications(reminders: Reminder[]): Promise<void> {
+  // Clear all in-app timers
+  for (const timer of activeTimers.values()) {
+    clearTimeout(timer);
+  }
+  activeTimers.clear();
+
+  if (Notifications) {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  }
+
+  for (const item of reminders.filter((r) => r.is_active && r.next_trigger_at)) {
+    await scheduleLocalNotification(item);
+  }
 }
 
 /** Cancel notification for a single reminder */
-export function cancelNotification(reminderId: string): void {
-  PushNotification.cancelLocalNotifications({ id: String(stableHashCode(reminderId)) });
+export async function cancelNotification(reminderId: string): Promise<void> {
+  if (activeTimers.has(reminderId)) {
+    clearTimeout(activeTimers.get(reminderId)!);
+    activeTimers.delete(reminderId);
+  }
+
+  if (Notifications) {
+    const notifId = String(stableHashCode(reminderId));
+    await Notifications.cancelScheduledNotificationAsync(notifId);
+  }
 }
 
 /**
  * FNV-1a 32-bit hash — provides much better distribution than a simple
  * shift-and-add hash, reducing notification ID collisions (Issue #16).
  */
-function stableHashCode(str: string): number {
+export function stableHashCode(str: string): number {
   let hash = 0x811c9dc5; // FNV offset basis
   for (let i = 0; i < str.length; i++) {
     hash ^= str.charCodeAt(i);

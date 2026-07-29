@@ -3,6 +3,7 @@ import type { Reminder } from '../store/reminderStore';
 import { upsertRemindersInDb, loadAllRemindersFromDb, deleteReminderFromDb } from '../db/reminderDao';
 import { useReminderStore } from '../store/reminderStore';
 import { enqueueChange } from '../db/offlineQueue';
+import { rescheduleAllNotifications } from '../services/NotificationService';
 
 type ReminderPayload = {
   title: string;
@@ -36,6 +37,7 @@ export async function fetchReminders(): Promise<void> {
   }
   const all = await loadAllRemindersFromDb();
   useReminderStore.getState().setReminders(all);
+  rescheduleAllNotifications(all);
 }
 
 export async function createReminder(payload: ReminderPayload): Promise<void> {
@@ -53,6 +55,7 @@ export async function createReminder(payload: ReminderPayload): Promise<void> {
   }
   const all = await loadAllRemindersFromDb();
   useReminderStore.getState().setReminders(all);
+  rescheduleAllNotifications(all);
 }
 
 export async function updateReminder(id: string, payload: Partial<ReminderPayload>): Promise<void> {
@@ -68,6 +71,7 @@ export async function updateReminder(id: string, payload: Partial<ReminderPayloa
   }
   const all = await loadAllRemindersFromDb();
   useReminderStore.getState().setReminders(all);
+  rescheduleAllNotifications(all);
 }
 
 export async function deleteReminder(id: string): Promise<void> {
@@ -83,6 +87,7 @@ export async function deleteReminder(id: string): Promise<void> {
   await deleteReminderFromDb(id);
   const all = await loadAllRemindersFromDb();
   useReminderStore.getState().setReminders(all);
+  rescheduleAllNotifications(all);
 }
 
 export async function toggleReminder(id: string): Promise<void> {
@@ -98,5 +103,6 @@ export async function toggleReminder(id: string): Promise<void> {
   }
   const all = await loadAllRemindersFromDb();
   useReminderStore.getState().setReminders(all);
+  rescheduleAllNotifications(all);
 }
 

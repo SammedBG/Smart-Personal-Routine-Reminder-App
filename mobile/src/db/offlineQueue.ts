@@ -25,15 +25,25 @@ export async function enqueueChange(
 ): Promise<void> {
   const db = await getDatabase();
   const payload: QueuePayload = { endpoint, method, data };
-  await db.executeSql(
-    'INSERT INTO pending_changes (operation, payload) VALUES (?, ?)',
-    [operation, JSON.stringify(payload)],
-  );
+  if (typeof db.runAsync === 'function') {
+    await db.runAsync(
+      'INSERT INTO pending_changes (operation, payload) VALUES (?, ?)',
+      [operation, JSON.stringify(payload)],
+    );
+  } else {
+    await db.executeSql(
+      'INSERT INTO pending_changes (operation, payload) VALUES (?, ?)',
+      [operation, JSON.stringify(payload)],
+    );
+  }
 }
 
 /** Load all pending changes ordered by creation */
 export async function loadPendingChanges(): Promise<PendingChange[]> {
   const db = await getDatabase();
+  if (typeof db.getAllAsync === 'function') {
+    return await db.getAllAsync('SELECT * FROM pending_changes ORDER BY id ASC');
+  }
   const [result] = await db.executeSql(
     'SELECT * FROM pending_changes ORDER BY id ASC',
   );
@@ -47,7 +57,11 @@ export async function loadPendingChanges(): Promise<PendingChange[]> {
 /** Remove a pending change after it's been flushed */
 async function removePendingChange(id: number): Promise<void> {
   const db = await getDatabase();
-  await db.executeSql('DELETE FROM pending_changes WHERE id = ?', [id]);
+  if (typeof db.runAsync === 'function') {
+    await db.runAsync('DELETE FROM pending_changes WHERE id = ?', [id]);
+  } else {
+    await db.executeSql('DELETE FROM pending_changes WHERE id = ?', [id]);
+  }
 }
 
 /** Flush lock to prevent concurrent flushes (race condition guard) */
@@ -96,8 +110,13 @@ export async function flushPendingChanges(): Promise<number> {
 /** Get the count of pending changes waiting to sync */
 export async function pendingChangeCount(): Promise<number> {
   const db = await getDatabase();
+  if (typeof db.getFirstAsync === 'function') {
+    const row: any = await db.getFirstAsync('SELECT COUNT(*) as cnt FROM pending_changes');
+    return row?.cnt || 0;
+  }
   const [result] = await db.executeSql(
     'SELECT COUNT(*) as cnt FROM pending_changes',
   );
   return result.rows.item(0).cnt;
 }
+

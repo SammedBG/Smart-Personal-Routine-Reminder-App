@@ -14,16 +14,14 @@ if TYPE_CHECKING:
     from backend.app.models.user import User
 
 
-class Platform(str, enum.Enum):
+class Platform(enum.StrEnum):
     ANDROID = "android"
     IOS = "ios"
 
 
 class Device(TimestampMixin, Base):
     __tablename__ = "devices"
-    __table_args__ = (
-        UniqueConstraint("user_id", "device_id", name="uq_devices_user_device"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "device_id", name="uq_devices_user_device"),)
 
     id: Mapped[uuid.UUID] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
@@ -40,4 +38,4 @@ class Device(TimestampMixin, Base):
     last_seen_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    user: Mapped["User"] = relationship("User", back_populates="devices")
+    user: Mapped[User] = relationship("User", back_populates="devices")

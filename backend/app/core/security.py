@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any, Optional
 
 import bcrypt
@@ -13,9 +13,7 @@ def get_password_hash(password: str) -> str:
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return bcrypt.checkpw(
-        plain_password.encode("utf-8"), hashed_password.encode("utf-8")
-    )
+    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
 
 def _create_token(
@@ -26,7 +24,7 @@ def _create_token(
     extra_claims: Optional[dict] = None,
 ) -> str:
     settings = get_settings()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload: dict[str, Any] = {
         "sub": subject,
         "iat": now,
@@ -65,23 +63,19 @@ def create_refresh_token(subject: str, token_version: int) -> str:
 
 def decode_token(token: str, token_type: str) -> dict:
     settings = get_settings()
-    secret = (
-        settings.jwt_secret_key
-        if token_type == "access"
-        else settings.jwt_refresh_secret_key
-    )
+    secret = settings.jwt_secret_key if token_type == "access" else settings.jwt_refresh_secret_key
     try:
         payload = jwt.decode(token, secret, algorithms=[settings.jwt_algorithm])
-    except jwt.ExpiredSignatureError:
+    except jwt.ExpiredSignatureError as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token expired",
-        )
-    except jwt.InvalidTokenError:
+        ) from err
+    except jwt.InvalidTokenError as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
-        )
+        ) from err
 
     if payload.get("type") != token_type:
         raise HTTPException(

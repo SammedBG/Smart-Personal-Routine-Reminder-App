@@ -4,6 +4,8 @@ npm-debug.log
 yarn-error.log
 .pnp
 .pnp.js
+FREE_DEPLOYMENT.md
+.expo
 
 # Python
 __pycache__/

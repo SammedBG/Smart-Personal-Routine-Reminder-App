@@ -6,7 +6,6 @@ from sqlalchemy.pool import NullPool
 
 from backend.app.config import get_settings
 
-
 settings = get_settings()
 
 _connect_args = {}

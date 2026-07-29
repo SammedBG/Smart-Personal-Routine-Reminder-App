@@ -11,9 +11,7 @@ class DeviceRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_by_user_and_device_id(
-        self, user_id: UUID, device_id: str
-    ) -> Optional[Device]:
+    async def get_by_user_and_device_id(self, user_id: UUID, device_id: str) -> Optional[Device]:
         result = await self.db.execute(
             select(Device).where(
                 Device.user_id == user_id,

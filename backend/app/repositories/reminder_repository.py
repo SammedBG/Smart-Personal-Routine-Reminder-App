@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import List, Optional
 from uuid import UUID
 
@@ -19,17 +19,11 @@ class ReminderRepository:
             .order_by(Reminder.time_of_day, Reminder.created_at)
         )
 
-    async def list_for_user(
-        self, user_id: UUID, skip: int = 0, limit: int = 50
-    ) -> List[Reminder]:
-        result = await self.db.execute(
-            self._base_query(user_id).offset(skip).limit(limit)
-        )
+    async def list_for_user(self, user_id: UUID, skip: int = 0, limit: int = 50) -> List[Reminder]:
+        result = await self.db.execute(self._base_query(user_id).offset(skip).limit(limit))
         return list(result.scalars().all())
 
-    async def get_for_user(
-        self, user_id: UUID, reminder_id: UUID
-    ) -> Optional[Reminder]:
+    async def get_for_user(self, user_id: UUID, reminder_id: UUID) -> Optional[Reminder]:
         result = await self.db.execute(
             self._base_query(user_id).where(Reminder.id == str(reminder_id))
         )
@@ -57,7 +51,7 @@ class ReminderRepository:
         return reminder
 
     async def soft_delete(self, reminder: Reminder) -> None:
-        reminder.deleted_at = datetime.now(timezone.utc)
+        reminder.deleted_at = datetime.now(UTC)
         self.db.add(reminder)
         await self.db.flush()
 
@@ -69,11 +63,7 @@ class ReminderRepository:
         if since is not None:
             base_query = base_query.where(Reminder.updated_at >= since)
 
-        count_query = (
-            select(func.count())
-            .select_from(Reminder)
-            .where(Reminder.user_id == user_id)
-        )
+        count_query = select(func.count()).select_from(Reminder).where(Reminder.user_id == user_id)
         if since is not None:
             count_query = count_query.where(Reminder.updated_at >= since)
 

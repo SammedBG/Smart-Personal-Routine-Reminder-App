@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from backend.app.models.user import User
 
 
-class ReminderType(str, enum.Enum):
+class ReminderType(enum.StrEnum):
     MEDICINE = "medicine"
     FOOD = "food"
     WATER = "water"
@@ -34,7 +34,7 @@ class ReminderType(str, enum.Enum):
     CUSTOM = "custom"
 
 
-class RepeatType(str, enum.Enum):
+class RepeatType(enum.StrEnum):
     ONCE = "once"
     DAILY = "daily"
     WEEKLY = "weekly"
@@ -52,9 +52,7 @@ class Reminder(TimestampMixin, Base):
         ),
     )
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
@@ -62,9 +60,7 @@ class Reminder(TimestampMixin, Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(1024))
 
-    idempotency_key: Mapped[Optional[str]] = mapped_column(
-        String(64), nullable=True, index=True
-    )
+    idempotency_key: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
 
     reminder_type: Mapped[ReminderType] = mapped_column(
         Enum(ReminderType, name="reminder_type"), nullable=False
@@ -92,15 +88,11 @@ class Reminder(TimestampMixin, Base):
     # { "exercise_type": "cardio", "duration_minutes": 30, "intensity": "moderate" }
     exercise_details: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
-    next_trigger_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), index=True
-    )
-    last_triggered_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True)
-    )
+    next_trigger_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), index=True)
+    last_triggered_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
-    user: Mapped["User"] = relationship("User", back_populates="reminders")
+    user: Mapped[User] = relationship("User", back_populates="reminders")

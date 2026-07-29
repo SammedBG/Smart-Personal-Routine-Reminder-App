@@ -8,12 +8,12 @@ from loguru import logger
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from backend.app.api.v1 import auth, completions, devices, health, reminders, users
 from backend.app.api.v1.auth import limiter
 from backend.app.config import get_settings
 
 # Import models so SQLAlchemy metadata is populated (for migrations and ORM)
 from backend.app.models import completion, device, reminder, user  # noqa: F401
-from backend.app.api.v1 import auth, completions, devices, health, reminders, users
 
 
 def create_app() -> FastAPI:
@@ -32,9 +32,7 @@ def create_app() -> FastAPI:
 
     # Global unhandled-exception handler
     @app.exception_handler(Exception)
-    async def global_exception_handler(
-        request: Request, exc: Exception
-    ) -> JSONResponse:
+    async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         request_id = getattr(request.state, "request_id", None)
         logger.exception(
             "Unhandled error on {} {} (request_id={})",

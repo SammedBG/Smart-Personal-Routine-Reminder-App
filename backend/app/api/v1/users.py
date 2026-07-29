@@ -6,7 +6,6 @@ from backend.app.core.security import get_password_hash, verify_password
 from backend.app.db.session import get_db
 from backend.app.schemas.user import PasswordChange, UserRead, UserUpdate
 
-
 router = APIRouter(prefix="/users", tags=["users"])
 
 
