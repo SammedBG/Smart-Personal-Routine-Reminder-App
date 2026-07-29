@@ -1,0 +1,19 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = [
+    "B008",   # FastAPI requires Depends() and Query() in function argument defaults
+    "UP035",  # Allow typing.List / typing.Dict / typing.Optional compatibility
+    "UP006",  # Allow List / Dict for type annotations
+    "UP045",  # Allow Optional[X] type annotations
+    "BLE001", # Allow catching Exception in health checks
+    "RET501", # Allow return None
+    "PLR1711",# Allow explicit return at end of function
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+known-first-party = ["app"]

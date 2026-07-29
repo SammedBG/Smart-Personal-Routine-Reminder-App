@@ -1,8 +1,7 @@
+from backend.app.db.session import get_db
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from backend.app.db.session import get_db
 
 router = APIRouter(tags=["health"])
 

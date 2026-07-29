@@ -1,21 +1,20 @@
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from loguru import logger
-from sqlalchemy import and_, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from backend.app.db.session import AsyncSessionLocal
 from backend.app.models.completion import CompletionRecord, CompletionStatus
 from backend.app.models.device import Device
 from backend.app.models.reminder import Reminder, RepeatType
 from backend.app.notifications.fcm import send_notification_to_devices
 from backend.app.services.reminder_service import compute_next_trigger
+from loguru import logger
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def process_due_reminders() -> None:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     async with AsyncSessionLocal() as session:  # type: AsyncSession
         logger.debug("Checking for due reminders at {}", now)
         result = await session.execute(
@@ -43,9 +42,7 @@ async def process_due_reminders() -> None:
         await session.commit()
 
 
-async def _notify_for_reminder(
-    session: AsyncSession, reminder: Reminder, now: datetime
-) -> None:
+async def _notify_for_reminder(session: AsyncSession, reminder: Reminder, now: datetime) -> None:
     # Fetch active devices for user
     result = await session.execute(
         select(Device).where(
@@ -94,7 +91,7 @@ MISSED_GRACE_MINUTES = 30
 async def mark_missed_completions() -> None:
     """Create 'missed' completion records for reminders that were triggered
     but received no user action within the grace period."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     cutoff = now - timedelta(minutes=MISSED_GRACE_MINUTES)
 
     async with AsyncSessionLocal() as session:

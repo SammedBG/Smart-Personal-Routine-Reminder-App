@@ -41,9 +41,7 @@ class Settings(BaseSettings):
 
     # JWT
     jwt_secret_key: str = Field("CHANGE_ME", alias="JWT_SECRET_KEY")
-    jwt_refresh_secret_key: str = Field(
-        "CHANGE_ME_REFRESH", alias="JWT_REFRESH_SECRET_KEY"
-    )
+    jwt_refresh_secret_key: str = Field("CHANGE_ME_REFRESH", alias="JWT_REFRESH_SECRET_KEY")
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
@@ -53,9 +51,7 @@ class Settings(BaseSettings):
     def _validate_jwt_secrets(cls, v: str, info: ValidationInfo) -> str:
         env = (info.data or {}).get("environment", "development")
         env_var = (
-            "JWT_SECRET_KEY"
-            if info.field_name == "jwt_secret_key"
-            else "JWT_REFRESH_SECRET_KEY"
+            "JWT_SECRET_KEY" if info.field_name == "jwt_secret_key" else "JWT_REFRESH_SECRET_KEY"
         )
         if env.lower() != "development" and v in _INSECURE_JWT_SECRETS:
             raise ValueError(
@@ -63,7 +59,7 @@ class Settings(BaseSettings):
             )
         if env.lower() == "development" and v in _INSECURE_JWT_SECRETS:
             logger.warning(
-                "{} is using a default value in development; set a strong random value for production.",
+                "{} is using a default value in development; set a strong value for production.",
                 env_var,
             )
         return v
@@ -84,6 +80,6 @@ class Settings(BaseSettings):
     }
 
 
-@lru_cache()
+@lru_cache
 def get_settings() -> Settings:
     return Settings()

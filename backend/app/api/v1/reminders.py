@@ -1,8 +1,6 @@
-from datetime import datetime, timezone as dt_timezone
+from datetime import UTC, datetime
 from typing import List, Optional
 from uuid import UUID
-
-from fastapi import APIRouter, HTTPException, Query, Request, status
 
 from backend.app.api.v1.auth import limiter
 from backend.app.core.dependencies import CurrentUser, ReminderServiceDep
@@ -12,7 +10,7 @@ from backend.app.schemas.reminder import (
     ReminderSyncResponse,
     ReminderUpdate,
 )
-
+from fastapi import APIRouter, HTTPException, Query, Request, status
 
 router = APIRouter(prefix="/reminders", tags=["reminders"])
 
@@ -54,7 +52,7 @@ async def sync_reminders(
     reminders, total_count = await service.list_changed_since(
         current_user.id, since, skip=skip, limit=limit
     )
-    now = datetime.now(dt_timezone.utc)
+    now = datetime.now(UTC)
     has_more = (skip + limit) < total_count
     return ReminderSyncResponse(
         reminders=[ReminderRead.model_validate(r) for r in reminders],

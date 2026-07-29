@@ -1,23 +1,30 @@
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 import { apiClient } from '../api/client';
 import type { Reminder } from '../store/reminderStore';
 
-// Expo Go removed push/local notification support in SDK 53+.
-// We must NOT import expo-notifications at the top level in Expo Go,
-// because the module itself registers push token listeners on import.
+// Expo Go removed native push/local notification support in SDK 53+.
+// We detect Expo Go so we can use an in-app timer fallback when running in Expo Go,
+// while preserving full native notifications for standalone/development builds.
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 // Lazy-load expo-notifications only when NOT in Expo Go
 function getNotifications(): typeof import('expo-notifications') | null {
   if (isExpoGo) return null;
-  return require('expo-notifications');
+  try {
+    return require('expo-notifications');
+  } catch {
+    return null;
+  }
 }
 
 const DEVICE_ID_KEY = 'device_id';
 const CHANNEL_ID = 'reminders_max';
+
+// Store in-app fallback timers when running inside Expo Go
+const activeTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 function getMessaging(): any {
   try {
@@ -76,7 +83,7 @@ async function createNotificationChannel(): Promise<void> {
 
 export async function initNotifications(): Promise<void> {
   if (!Notifications) {
-    if (__DEV__) console.log('Running in Expo Go — skipping push notification setup (not supported in SDK 53+)');
+    if (__DEV__) console.log('Running in Expo Go — using in-app reminder fallback (native notifications require Development Build)');
     return;
   }
 
@@ -137,11 +144,35 @@ async function registerDeviceWithBackend(fcmToken: string): Promise<void> {
 
 /** Schedule a local notification for a single reminder */
 export async function scheduleLocalNotification(reminder: Reminder): Promise<void> {
-  if (!Notifications) return; // Not available in Expo Go SDK 53+
   if (!reminder.next_trigger_at || !reminder.is_active) return;
   const triggerDate = new Date(reminder.next_trigger_at);
-  if (triggerDate.getTime() <= Date.now() + 5000) return;
+  const delayMs = triggerDate.getTime() - Date.now();
+  if (delayMs <= 1000) return;
 
+  // In Expo Go (SDK 53+), native notification APIs are excluded from the binary.
+  // Use in-app Alert timers so reminders still pop up on screen during Expo Go testing!
+  if (isExpoGo || !Notifications) {
+    if (activeTimers.has(reminder.id)) {
+      clearTimeout(activeTimers.get(reminder.id)!);
+    }
+    if (delayMs < 24 * 60 * 60 * 1000) { // schedule if within 24 hours
+      const timer = setTimeout(() => {
+        Alert.alert(
+          `\u{1F514} Reminder: ${reminder.title}`,
+          reminder.description || buildNotificationBody(reminder),
+          [{ text: 'OK' }]
+        );
+        activeTimers.delete(reminder.id);
+      }, delayMs);
+      activeTimers.set(reminder.id, timer);
+      if (__DEV__) {
+        console.log(`[Expo Go Fallback] In-app alert scheduled for "${reminder.title}" in ${Math.round(delayMs / 1000)}s`);
+      }
+    }
+    return;
+  }
+
+  // Native notification scheduling for standalone / development builds
   const notifId = String(stableHashCode(reminder.id));
 
   await Notifications.scheduleNotificationAsync({
@@ -158,7 +189,7 @@ export async function scheduleLocalNotification(reminder: Reminder): Promise<voi
     } as any,
   });
 
-  if (__DEV__) console.log(`Scheduled: "${reminder.title}" at ${triggerDate.toLocaleString()}`);
+  if (__DEV__) console.log(`Scheduled native notification: "${reminder.title}" at ${triggerDate.toLocaleString()}`);
 }
 
 function buildNotificationBody(reminder: Reminder): string {
@@ -177,8 +208,16 @@ function buildNotificationBody(reminder: Reminder): string {
 
 /** Cancel all scheduled notifications and re-schedule all active ones */
 export async function rescheduleAllNotifications(reminders: Reminder[]): Promise<void> {
-  if (!Notifications) return;
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  // Clear all in-app timers
+  for (const timer of activeTimers.values()) {
+    clearTimeout(timer);
+  }
+  activeTimers.clear();
+
+  if (Notifications) {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  }
+
   for (const r of reminders.filter((r) => r.is_active && r.next_trigger_at)) {
     await scheduleLocalNotification(r);
   }
@@ -186,9 +225,15 @@ export async function rescheduleAllNotifications(reminders: Reminder[]): Promise
 
 /** Cancel notification for a single reminder */
 export async function cancelNotification(reminderId: string): Promise<void> {
-  if (!Notifications) return;
-  const notifId = String(stableHashCode(reminderId));
-  await Notifications.cancelScheduledNotificationAsync(notifId);
+  if (activeTimers.has(reminderId)) {
+    clearTimeout(activeTimers.get(reminderId)!);
+    activeTimers.delete(reminderId);
+  }
+
+  if (Notifications) {
+    const notifId = String(stableHashCode(reminderId));
+    await Notifications.cancelScheduledNotificationAsync(notifId);
+  }
 }
 
 /**

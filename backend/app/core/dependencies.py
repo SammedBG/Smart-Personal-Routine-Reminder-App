@@ -1,14 +1,12 @@
 from typing import Annotated
 
+from backend.app.core.security import decode_token
+from backend.app.db.session import get_db
+from backend.app.models.user import User
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-
-from backend.app.core.security import decode_token
-from backend.app.db.session import get_db
-from backend.app.models.user import User
-
 
 reusable_oauth2 = HTTPBearer(auto_error=False)
 
@@ -60,9 +58,9 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 # ---------------------------------------------------------------------------
 
 from backend.app.services.auth_service import AuthService  # noqa: E402
-from backend.app.services.reminder_service import ReminderService  # noqa: E402
 from backend.app.services.completion_service import CompletionService  # noqa: E402
 from backend.app.services.device_service import DeviceService  # noqa: E402
+from backend.app.services.reminder_service import ReminderService  # noqa: E402
 
 
 async def get_auth_service(db: AsyncSession = Depends(get_db)) -> AuthService:

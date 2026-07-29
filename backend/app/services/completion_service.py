@@ -1,8 +1,6 @@
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import List
-
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.models.completion import CompletionRecord, CompletionStatus
 from backend.app.repositories.completion_repository import CompletionRepository
@@ -11,6 +9,7 @@ from backend.app.schemas.completion import (
     DailyStats,
     StreakInfo,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class CompletionService:
@@ -18,9 +17,7 @@ class CompletionService:
         self.db = db
         self.repo = CompletionRepository(db)
 
-    async def record_completion(
-        self, user_id: str, data: CompletionCreate
-    ) -> CompletionRecord:
+    async def record_completion(self, user_id: str, data: CompletionCreate) -> CompletionRecord:
         # Verify the reminder belongs to this user
         from backend.app.repositories.reminder_repository import ReminderRepository
 
@@ -37,14 +34,12 @@ class CompletionService:
         date_key = data.scheduled_at.strftime("%Y-%m-%d")
 
         # Check for existing record for this reminder on this date
-        existing = await self.repo.get_for_reminder_date(
-            user_id, data.reminder_id, date_key
-        )
+        existing = await self.repo.get_for_reminder_date(user_id, data.reminder_id, date_key)
         if existing:
             # Update existing record
             existing.status = data.status
             existing.completed_at = (
-                datetime.now(timezone.utc)
+                datetime.now(UTC)
                 if data.status in (CompletionStatus.DONE, CompletionStatus.SKIPPED)
                 else None
             )
@@ -58,7 +53,7 @@ class CompletionService:
             user_id=user_id,
             scheduled_at=data.scheduled_at,
             completed_at=(
-                datetime.now(timezone.utc)
+                datetime.now(UTC)
                 if data.status in (CompletionStatus.DONE, CompletionStatus.SKIPPED)
                 else None
             ),
@@ -72,13 +67,11 @@ class CompletionService:
     async def get_today_completions(
         self, user_id: str, skip: int = 0, limit: int = 100
     ) -> List[CompletionRecord]:
-        today_key = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+        today_key = datetime.now(UTC).date().strftime("%Y-%m-%d")
         return await self.repo.list_for_date(user_id, today_key, skip=skip, limit=limit)
 
-    async def get_streak_info(
-        self, user_id: str, total_today_reminders: int
-    ) -> StreakInfo:
-        today = datetime.now(timezone.utc).date()
+    async def get_streak_info(self, user_id: str, total_today_reminders: int) -> StreakInfo:
+        today = datetime.now(UTC).date()
         # Get last 30 days of data for streak computation
         start = today - timedelta(days=30)
         start_key = start.strftime("%Y-%m-%d")
@@ -106,9 +99,7 @@ class CompletionService:
             day_records = by_date.get(dk, [])
             total = len(day_records)
             done = sum(1 for r in day_records if r.status == CompletionStatus.DONE)
-            skipped = sum(
-                1 for r in day_records if r.status == CompletionStatus.SKIPPED
-            )
+            skipped = sum(1 for r in day_records if r.status == CompletionStatus.SKIPPED)
             missed = sum(1 for r in day_records if r.status == CompletionStatus.MISSED)
             rate = done / total if total > 0 else 0.0
             weekly_stats.append(
@@ -137,9 +128,7 @@ class CompletionService:
                 break
 
         # If today is also 100%, include it
-        if today_records and all(
-            r.status == CompletionStatus.DONE for r in today_records
-        ):
+        if today_records and all(r.status == CompletionStatus.DONE for r in today_records):
             current_streak += 1
 
         # Longest streak (simplified from the 30-day window)
@@ -149,9 +138,7 @@ class CompletionService:
             d = today - timedelta(days=i)
             dk = d.strftime("%Y-%m-%d")
             day_records = by_date.get(dk, [])
-            if day_records and all(
-                r.status == CompletionStatus.DONE for r in day_records
-            ):
+            if day_records and all(r.status == CompletionStatus.DONE for r in day_records):
                 streak += 1
                 longest_streak = max(longest_streak, streak)
             else:
