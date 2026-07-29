@@ -19,28 +19,27 @@
       "jest",
       "react-native"
     ],
-    "baseUrl": "./src",
     "paths": {
       "@api/*": [
-        "api/*"
+        "./src/api/*"
       ],
       "@store/*": [
-        "store/*"
+        "./src/store/*"
       ],
       "@screens/*": [
-        "screens/*"
+        "./src/screens/*"
       ],
       "@components/*": [
-        "components/*"
+        "./src/components/*"
       ],
       "@services/*": [
-        "services/*"
+        "./src/services/*"
       ],
       "@db/*": [
-        "db/*"
+        "./src/db/*"
       ],
       "@utils/*": [
-        "utils/*"
+        "./src/utils/*"
       ]
     }
   },
