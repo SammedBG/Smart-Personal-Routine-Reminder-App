@@ -16,12 +16,8 @@ ignore = [
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
-known-first-party = ["app", "backend"]
+known-first-party = ["backend", "app"]
 
 [tool.pyright]
-extraPaths = ["..", "."]
+include = ["backend"]
 pythonVersion = "3.11"
-
-[tool.pytest.ini_options]
-pythonpath = [".", ".."]
-asyncio_mode = "auto"

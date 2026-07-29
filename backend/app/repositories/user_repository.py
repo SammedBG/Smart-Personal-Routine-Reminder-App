@@ -1,9 +1,10 @@
 from typing import Optional
 from uuid import UUID
 
-from backend.app.models.user import User
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.app.models.user import User
 
 
 class UserRepository:

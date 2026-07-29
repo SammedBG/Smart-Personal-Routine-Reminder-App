@@ -2,9 +2,10 @@ from datetime import UTC, datetime
 from typing import List, Optional
 from uuid import UUID
 
-from backend.app.models.reminder import Reminder
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.app.models.reminder import Reminder
 
 
 class ReminderRepository:

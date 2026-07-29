@@ -2,6 +2,8 @@ from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from typing import List
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.app.models.completion import CompletionRecord, CompletionStatus
 from backend.app.repositories.completion_repository import CompletionRepository
 from backend.app.schemas.completion import (
@@ -9,7 +11,6 @@ from backend.app.schemas.completion import (
     DailyStats,
     StreakInfo,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class CompletionService:

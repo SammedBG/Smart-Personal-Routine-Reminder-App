@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import List, Optional
 
-from backend.app.models.completion import CompletionStatus
 from pydantic import BaseModel
+
+from backend.app.models.completion import CompletionStatus
 
 
 class CompletionCreate(BaseModel):

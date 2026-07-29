@@ -1,8 +1,9 @@
 from datetime import date, datetime, time
 from typing import Dict, List, Optional
 
-from backend.app.models.reminder import ReminderType, RepeatType
 from pydantic import BaseModel, Field
+
+from backend.app.models.reminder import ReminderType, RepeatType
 
 
 class MedicineDetails(BaseModel):

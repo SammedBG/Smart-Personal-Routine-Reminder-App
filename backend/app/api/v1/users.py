@@ -1,9 +1,10 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.app.core.dependencies import CurrentUser
 from backend.app.core.security import get_password_hash, verify_password
 from backend.app.db.session import get_db
 from backend.app.schemas.user import PasswordChange, UserRead, UserUpdate
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/users", tags=["users"])
 

@@ -1,3 +1,9 @@
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.app.core.dependencies import AuthServiceDep, CurrentUser
 from backend.app.core.security import decode_token
 from backend.app.db.session import get_db
@@ -10,11 +16,6 @@ from backend.app.schemas.user import (
     UserRead,
 )
 from backend.app.services.auth_service import AuthService
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 limiter = Limiter(key_func=get_remote_address)
 

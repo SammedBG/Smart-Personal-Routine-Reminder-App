@@ -2,6 +2,8 @@ from datetime import UTC, datetime
 from typing import List, Optional
 from uuid import UUID
 
+from fastapi import APIRouter, HTTPException, Query, Request, status
+
 from backend.app.api.v1.auth import limiter
 from backend.app.core.dependencies import CurrentUser, ReminderServiceDep
 from backend.app.schemas.reminder import (
@@ -10,7 +12,6 @@ from backend.app.schemas.reminder import (
     ReminderSyncResponse,
     ReminderUpdate,
 )
-from fastapi import APIRouter, HTTPException, Query, Request, status
 
 router = APIRouter(prefix="/reminders", tags=["reminders"])
 

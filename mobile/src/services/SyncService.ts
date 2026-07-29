@@ -73,7 +73,7 @@ export async function syncFromServer(): Promise<void> {
     if (lastSyncFromServer) {
       useReminderStore.getState().setLastSyncAt(lastSyncFromServer);
     }
-  } catch (err) {
+  } catch {
     console.warn('Sync failed; will retry on next sync cycle.');
   } finally {
     isSyncing = false;

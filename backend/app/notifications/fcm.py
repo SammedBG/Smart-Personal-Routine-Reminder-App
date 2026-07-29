@@ -1,10 +1,11 @@
 from typing import Any, Dict, List
 
 import firebase_admin
-from backend.app.config import get_settings
-from backend.app.models.device import Device
 from firebase_admin import credentials, messaging
 from loguru import logger
+
+from backend.app.config import get_settings
+from backend.app.models.device import Device
 
 _initialized = False
 

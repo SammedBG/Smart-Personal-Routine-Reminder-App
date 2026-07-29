@@ -1,6 +1,3 @@
-import { Platform } from 'react-native';
-import Constants from 'expo-constants';
-
 /**
  * API Base URL Configuration.
  * 
@@ -19,6 +16,3 @@ const DEFAULT_API_HOST = 'localhost';
 const LOCAL_API_URL = `http://${DEFAULT_API_HOST}:8000/api/v1`;
 
 export const API_BASE_URL = IS_PRODUCTION ? PRODUCTION_API_URL : LOCAL_API_URL;
-
-
-

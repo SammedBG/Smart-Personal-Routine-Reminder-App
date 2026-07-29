@@ -1,18 +1,19 @@
 import time
 import uuid
 
-from backend.app.api.v1 import auth, completions, devices, health, reminders, users
-from backend.app.api.v1.auth import limiter
-from backend.app.config import get_settings
-
-# Import models so SQLAlchemy metadata is populated (for migrations and ORM)
-from backend.app.models import completion, device, reminder, user  # noqa: F401
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+
+from backend.app.api.v1 import auth, completions, devices, health, reminders, users
+from backend.app.api.v1.auth import limiter
+from backend.app.config import get_settings
+
+# Import models so SQLAlchemy metadata is populated (for migrations and ORM)
+from backend.app.models import completion, device, reminder, user  # noqa: F401
 
 
 def create_app() -> FastAPI:

@@ -1,5 +1,8 @@
 from datetime import UTC, datetime
 
+from fastapi import HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -9,8 +12,6 @@ from backend.app.core.security import (
 from backend.app.models.user import User
 from backend.app.repositories.user_repository import UserRepository
 from backend.app.schemas.user import TokenPair, UserCreate, UserLogin
-from fastapi import HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class AuthService:

@@ -1,8 +1,9 @@
 from typing import List
 
+from fastapi import APIRouter, HTTPException
+
 from backend.app.core.dependencies import CurrentUser, DeviceServiceDep
 from backend.app.schemas.device import DeviceRead, DeviceRegister
-from fastapi import APIRouter, HTTPException
 
 router = APIRouter(prefix="/devices", tags=["devices"])
 

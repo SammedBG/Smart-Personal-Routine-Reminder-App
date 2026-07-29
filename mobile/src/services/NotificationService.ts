@@ -218,8 +218,8 @@ export async function rescheduleAllNotifications(reminders: Reminder[]): Promise
     await Notifications.cancelAllScheduledNotificationsAsync();
   }
 
-  for (const r of reminders.filter((r) => r.is_active && r.next_trigger_at)) {
-    await scheduleLocalNotification(r);
+  for (const item of reminders.filter((r) => r.is_active && r.next_trigger_at)) {
+    await scheduleLocalNotification(item);
   }
 }
 

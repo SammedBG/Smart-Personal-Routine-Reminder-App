@@ -3,8 +3,9 @@ from typing import Any, Optional
 
 import bcrypt
 import jwt
-from backend.app.config import get_settings
 from fastapi import HTTPException, status
+
+from backend.app.config import get_settings
 
 
 def get_password_hash(password: str) -> str:

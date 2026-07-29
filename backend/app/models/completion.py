@@ -3,9 +3,10 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
-from backend.app.db.base import Base, TimestampMixin
 from sqlalchemy import DateTime, Enum, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from backend.app.db.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from backend.app.models.reminder import Reminder

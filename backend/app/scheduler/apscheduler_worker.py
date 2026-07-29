@@ -2,15 +2,16 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from loguru import logger
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.app.db.session import AsyncSessionLocal
 from backend.app.models.completion import CompletionRecord, CompletionStatus
 from backend.app.models.device import Device
 from backend.app.models.reminder import Reminder, RepeatType
 from backend.app.notifications.fcm import send_notification_to_devices
 from backend.app.services.reminder_service import compute_next_trigger
-from loguru import logger
-from sqlalchemy import and_, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def process_due_reminders() -> None:

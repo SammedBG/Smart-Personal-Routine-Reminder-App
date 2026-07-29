@@ -1,12 +1,13 @@
 from typing import Annotated
 
-from backend.app.core.security import decode_token
-from backend.app.db.session import get_db
-from backend.app.models.user import User
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+
+from backend.app.core.security import decode_token
+from backend.app.db.session import get_db
+from backend.app.models.user import User
 
 reusable_oauth2 = HTTPBearer(auto_error=False)
 

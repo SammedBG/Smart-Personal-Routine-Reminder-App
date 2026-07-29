@@ -1,6 +1,8 @@
 from datetime import UTC, datetime
 from typing import List
 
+from fastapi import APIRouter, Query, Request
+
 from backend.app.api.v1.auth import limiter
 from backend.app.core.dependencies import (
     CompletionServiceDep,
@@ -12,7 +14,6 @@ from backend.app.schemas.completion import (
     CompletionRead,
     StreakInfo,
 )
-from fastapi import APIRouter, Query, Request
 
 router = APIRouter(prefix="/completions", tags=["completions"])
 

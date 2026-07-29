@@ -1,9 +1,10 @@
 from typing import List, Optional
 from uuid import UUID
 
-from backend.app.models.device import Device
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.app.models.device import Device
 
 
 class DeviceRepository:
