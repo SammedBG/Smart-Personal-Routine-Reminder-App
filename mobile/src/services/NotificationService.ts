@@ -1,4 +1,3 @@
-import * as Notifications from 'expo-notifications';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
@@ -6,9 +5,16 @@ import { Platform } from 'react-native';
 import { apiClient } from '../api/client';
 import type { Reminder } from '../store/reminderStore';
 
-// Expo Go removed push notification support in SDK 53+.
-// Detect Expo Go so we can skip push-related calls gracefully.
+// Expo Go removed push/local notification support in SDK 53+.
+// We must NOT import expo-notifications at the top level in Expo Go,
+// because the module itself registers push token listeners on import.
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+// Lazy-load expo-notifications only when NOT in Expo Go
+function getNotifications(): typeof import('expo-notifications') | null {
+  if (isExpoGo) return null;
+  return require('expo-notifications');
+}
 
 const DEVICE_ID_KEY = 'device_id';
 const CHANNEL_ID = 'reminders_max';
@@ -41,8 +47,9 @@ async function getOrCreateDeviceId(): Promise<string> {
   return id;
 }
 
-// Set foreground notification handler behavior (not available in Expo Go SDK 53+)
-if (!isExpoGo) {
+// Set foreground notification handler behavior (lazy, skipped in Expo Go)
+const Notifications = getNotifications();
+if (Notifications) {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -56,7 +63,7 @@ if (!isExpoGo) {
 
 /** Create max-importance notification channel for Android */
 async function createNotificationChannel(): Promise<void> {
-  if (Platform.OS === 'android') {
+  if (Platform.OS === 'android' && Notifications) {
     await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
       name: 'Reminders',
       importance: Notifications.AndroidImportance.MAX,
@@ -68,7 +75,7 @@ async function createNotificationChannel(): Promise<void> {
 }
 
 export async function initNotifications(): Promise<void> {
-  if (isExpoGo) {
+  if (!Notifications) {
     if (__DEV__) console.log('Running in Expo Go — skipping push notification setup (not supported in SDK 53+)');
     return;
   }
@@ -130,7 +137,7 @@ async function registerDeviceWithBackend(fcmToken: string): Promise<void> {
 
 /** Schedule a local notification for a single reminder */
 export async function scheduleLocalNotification(reminder: Reminder): Promise<void> {
-  if (isExpoGo) return; // Local scheduling not supported in Expo Go SDK 53+
+  if (!Notifications) return; // Not available in Expo Go SDK 53+
   if (!reminder.next_trigger_at || !reminder.is_active) return;
   const triggerDate = new Date(reminder.next_trigger_at);
   if (triggerDate.getTime() <= Date.now() + 5000) return;
@@ -170,6 +177,7 @@ function buildNotificationBody(reminder: Reminder): string {
 
 /** Cancel all scheduled notifications and re-schedule all active ones */
 export async function rescheduleAllNotifications(reminders: Reminder[]): Promise<void> {
+  if (!Notifications) return;
   await Notifications.cancelAllScheduledNotificationsAsync();
   for (const r of reminders.filter((r) => r.is_active && r.next_trigger_at)) {
     await scheduleLocalNotification(r);
@@ -178,6 +186,7 @@ export async function rescheduleAllNotifications(reminders: Reminder[]): Promise
 
 /** Cancel notification for a single reminder */
 export async function cancelNotification(reminderId: string): Promise<void> {
+  if (!Notifications) return;
   const notifId = String(stableHashCode(reminderId));
   await Notifications.cancelScheduledNotificationAsync(notifId);
 }
@@ -194,4 +203,3 @@ export function stableHashCode(str: string): number {
   }
   return Math.abs(hash | 0);
 }
-
