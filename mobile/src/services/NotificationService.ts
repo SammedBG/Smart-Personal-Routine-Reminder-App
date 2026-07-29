@@ -1,9 +1,14 @@
 import * as Notifications from 'expo-notifications';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
 import { apiClient } from '../api/client';
 import type { Reminder } from '../store/reminderStore';
+
+// Expo Go removed push notification support in SDK 53+.
+// Detect Expo Go so we can skip push-related calls gracefully.
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 const DEVICE_ID_KEY = 'device_id';
 const CHANNEL_ID = 'reminders_max';
@@ -36,14 +41,18 @@ async function getOrCreateDeviceId(): Promise<string> {
   return id;
 }
 
-// Set foreground notification handler behavior
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// Set foreground notification handler behavior (not available in Expo Go SDK 53+)
+if (!isExpoGo) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 /** Create max-importance notification channel for Android */
 async function createNotificationChannel(): Promise<void> {
@@ -59,6 +68,11 @@ async function createNotificationChannel(): Promise<void> {
 }
 
 export async function initNotifications(): Promise<void> {
+  if (isExpoGo) {
+    if (__DEV__) console.log('Running in Expo Go — skipping push notification setup (not supported in SDK 53+)');
+    return;
+  }
+
   await Notifications.requestPermissionsAsync({
     ios: { allowAlert: true, allowBadge: true, allowSound: true },
   });
@@ -116,6 +130,7 @@ async function registerDeviceWithBackend(fcmToken: string): Promise<void> {
 
 /** Schedule a local notification for a single reminder */
 export async function scheduleLocalNotification(reminder: Reminder): Promise<void> {
+  if (isExpoGo) return; // Local scheduling not supported in Expo Go SDK 53+
   if (!reminder.next_trigger_at || !reminder.is_active) return;
   const triggerDate = new Date(reminder.next_trigger_at);
   if (triggerDate.getTime() <= Date.now() + 5000) return;

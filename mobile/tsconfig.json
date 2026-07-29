@@ -12,7 +12,7 @@
     "skipLibCheck": true,
     "noEmit": true,
     "strict": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "types": [
