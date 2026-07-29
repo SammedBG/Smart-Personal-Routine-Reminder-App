@@ -38,8 +38,9 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     setError(null);
     try {
       await login({ email: email.trim(), password });
-    } catch (e) {
-      setError('Login failed. Check your credentials.');
+    } catch (e: any) {
+      const serverMsg = e?.response?.data?.detail || e?.message;
+      setError(serverMsg ? `Login failed: ${serverMsg}` : 'Login failed. Check your credentials.');
     } finally {
       setLoading(false);
     }

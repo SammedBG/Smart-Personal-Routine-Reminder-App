@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 /**
  * API Base URL Configuration.
@@ -12,8 +13,12 @@ import { Platform } from 'react-native';
 const IS_PRODUCTION = false; // Set to true when deploying/building release APK
 const PRODUCTION_API_URL = 'https://YOUR-RENDER-APP-NAME.onrender.com/api/v1';
 
-const DEFAULT_API_HOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+// For local development with USB Debugging (adb reverse tcp:8000 tcp:8000),
+// 'localhost' maps directly to your PC backend.
+const DEFAULT_API_HOST = 'localhost';
 const LOCAL_API_URL = `http://${DEFAULT_API_HOST}:8000/api/v1`;
 
 export const API_BASE_URL = IS_PRODUCTION ? PRODUCTION_API_URL : LOCAL_API_URL;
+
+
 

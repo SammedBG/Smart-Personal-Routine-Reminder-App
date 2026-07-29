@@ -43,8 +43,9 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     setError(null);
     try {
       await register({ email: email.trim(), password, full_name: fullName.trim() || undefined });
-    } catch (e) {
-      setError('Registration failed. Try a different email.');
+    } catch (e: any) {
+      const serverMsg = e?.response?.data?.detail || e?.message;
+      setError(serverMsg ? `Registration failed: ${serverMsg}` : 'Registration failed. Try a different email.');
     } finally {
       setLoading(false);
     }
